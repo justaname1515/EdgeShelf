@@ -1,0 +1,18 @@
+# 构建中间产物
+EdgeShelf/bin/
+EdgeShelf/obj/
+publish/
+
+# 发布产物（应上传到 GitHub Releases，不入库；如需入库请删除下面两行）
+EdgeShelf.exe
+EdgeShelf-*.zip
+
+# 环境缓存（若仓库建在工作区根目录 D:\AI\deepseek harness）
+running/
+.nuget/
+.dotnet/
+.appdata/
+
+# 系统文件
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,156 @@
+<Window x:Class="EdgeShelf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:EdgeShelf.Views"
+        Title="EdgeShelf 边缘收纳"
+        Width="12" Height="260" Left="-2000" Top="-2000"
+        WindowStyle="None" AllowsTransparency="True" Background="{x:Null}"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
+        UseLayoutRounding="True"
+        AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop"
+        Loaded="OnLoaded" SourceInitialized="OnSourceInitialized"
+        DpiChanged="OnDpiChanged" Closing="OnClosing">
+    <Grid Background="{x:Null}">
+
+        <!-- 蓝色窄条：点击开合；按住拖动可沿边移动位置或拖到其他边缘换边 -->
+        <Border x:Name="Tab" Width="10" Height="260"
+                Background="{DynamicResource AccentBrush}" CornerRadius="0,8,8,0"
+                HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                MouseLeftButtonDown="Tab_MouseLeftButtonDown"
+                MouseMove="Tab_MouseMove"
+                MouseLeftButtonUp="Tab_MouseLeftButtonUp"
+                ToolTip="EdgeShelf（点击展开/收起；按住拖动可移动位置或换边）">
+            <TextBlock x:Name="TabArrow" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- L 形拐角的横臂（仅拐角模式显示） -->
+        <Border x:Name="TabH" Width="90" Height="10" Visibility="Collapsed"
+                Background="{DynamicResource AccentBrush}" CornerRadius="0,0,8,8"
+                HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                MouseLeftButtonDown="Tab_MouseLeftButtonDown"
+                MouseMove="Tab_MouseMove"
+                MouseLeftButtonUp="Tab_MouseLeftButtonUp"/>
+
+        <!-- 弹出面板 -->
+        <Grid x:Name="PanelHost" Width="340" Height="260" Margin="16,0,0,0"
+              HorizontalAlignment="Left" VerticalAlignment="Stretch">
+            <Border x:Name="Panel" Background="{DynamicResource PanelBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="0,12,12,0" Opacity="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 头部：固定 ▼ / 添加文件夹 / 添加快捷方式 / 设置 / 收起 -->
+                    <Grid Grid.Row="0" Height="42" Background="{DynamicResource HeaderBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="PinButton" Style="{StaticResource HeaderToggleBtn}" Margin="4,0,0,0"
+                                      ToolTip="固定面板（不自动收回）" Click="PinButton_Click">
+                            <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                        </ToggleButton>
+                        <Button Grid.Column="2" Style="{StaticResource HeaderIconBtn}" ToolTip="添加文件夹分组（可多选）" Click="AddGroup_Click">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="3" Style="{StaticResource HeaderIconBtn}" ToolTip="添加快捷方式（复制 .lnk 到自己选的文件夹）"
+                                Click="AddShortcut_Click">
+                            <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="4" Style="{StaticResource HeaderIconBtn}" ToolTip="设置" Click="Settings_Click">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="5" Style="{StaticResource HeaderIconBtn}" ToolTip="收起面板" Click="ClosePanel_Click">
+                            <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                    </Grid>
+
+                    <!-- 页签栏：切换合并进来的侧边栏；拖名字出去可分离 -->
+                    <Grid Grid.Row="1" Height="30" Background="{DynamicResource HeaderBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="TabStrip" Orientation="Horizontal" Margin="6,2,0,2"/>
+                        </ScrollViewer>
+                        <Button Grid.Column="1" Style="{StaticResource HeaderIconBtn}" ToolTip="在此侧边栏新建一个页签（侧边栏 2）"
+                                Click="AddTab_Click">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                    </Grid>
+
+                    <!-- 内容区：整个面板就是一组抽屉（文件夹分组） -->
+                    <views:GroupsView x:Name="GroupsView" Grid.Row="2"/>
+
+                    <!-- 宽度把手 -->
+                    <Border x:Name="ResizeGrip" Grid.RowSpan="3" Width="6"
+                            HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                            Cursor="SizeWE" ToolTip="拖动调整面板宽度"
+                            MouseLeftButtonDown="ResizeGrip_MouseLeftButtonDown"
+                            MouseMove="ResizeGrip_MouseMove"
+                            MouseLeftButtonUp="ResizeGrip_MouseLeftButtonUp">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#0DFFFFFF"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#40FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+
+                    <!-- 高度/长度把手（自由端） -->
+                    <Border x:Name="ResizeGripAlong" Grid.RowSpan="3" Height="6"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                            Cursor="SizeNS" ToolTip="拖动调整面板高度"
+                            MouseLeftButtonDown="ResizeGripAlong_MouseLeftButtonDown"
+                            MouseMove="ResizeGripAlong_MouseMove"
+                            MouseLeftButtonUp="ResizeGripAlong_MouseLeftButtonUp">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#0DFFFFFF"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#40FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+
+                    <!-- 高度/长度把手（锚点端，拐角模式隐藏） -->
+                    <Border x:Name="ResizeGripAlong2" Grid.RowSpan="3" Height="6"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                            Cursor="SizeNS" ToolTip="拖动调整面板高度"
+                            MouseLeftButtonDown="ResizeGripAlong2_MouseLeftButtonDown"
+                            MouseMove="ResizeGripAlong2_MouseMove"
+                            MouseLeftButtonUp="ResizeGripAlong2_MouseLeftButtonUp">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#0DFFFFFF"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#40FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

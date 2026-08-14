@@ -1,0 +1,90 @@
+<UserControl x:Class="EdgeShelf.Views.GroupsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MouseLeftButtonDown="Root_MouseLeftButtonDown">
+    <Grid Background="{x:Null}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,10,10,14">
+            <ItemsControl x:Name="GroupsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="10" Margin="0,0,0,8" Padding="10,6,10,8"
+                                MouseEnter="Card_MouseEnter" MouseLeave="Card_MouseLeave">
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="打开位置" Click="CtxOpen_Click"/>
+                                    <MenuItem Header="在此新建子文件夹" Click="CtxNewSub_Click"/>
+                                    <MenuItem Header="重命名分组" Click="CtxRename_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="删除分组" Click="CtxDelete_Click"/>
+                                </ContextMenu>
+                            </Border.ContextMenu>
+                            <StackPanel>
+                                <!-- 名字行：点击整行（除按钮外）展开/收起；在子文件夹中点击返回 -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="{DynamicResource TextBrush}"
+                                               FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" Cursor="Hand" HorizontalAlignment="Stretch"
+                                               ToolTip="点击展开 / 收起（在子文件夹中点击返回上级）"
+                                               MouseLeftButtonDown="NameRow_MouseLeftButtonDown"/>
+                                    <Button Grid.Column="1" Style="{StaticResource HeaderIconBtn}" ToolTip="返回上级"
+                                            Visibility="{Binding IsDrilled, Converter={StaticResource BoolToVis}}"
+                                            Click="Back_Click">
+                                        <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                    </Button>
+                                    <Button Grid.Column="2" Style="{StaticResource HeaderIconBtn}" ToolTip="打开位置"
+                                            Click="OpenFolder_Click">
+                                        <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                    </Button>
+                                </Grid>
+
+                                <!-- 内容（可折叠） -->
+                                <StackPanel Margin="0,6,0,0"
+                                            Visibility="{Binding IsCollapsed, Converter={StaticResource InverseBoolToVis}}">
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Width="52" Height="58" Margin="1" Background="Transparent" BorderThickness="0"
+                                                        ToolTip="{Binding Path}" Click="Item_Click">
+                                                    <StackPanel>
+                                                        <Image Source="{Binding Icon}" Width="32" Height="32" Stretch="Uniform"/>
+                                                        <TextBlock Text="{Binding DisplayName}" FontSize="10.5"
+                                                                   Foreground="{DynamicResource TextBrush}" TextAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis" MaxWidth="50" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Border x:Name="EmptyHint" Background="{x:Null}" Visibility="Collapsed" IsHitTestVisible="False">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="40"
+                           Foreground="{DynamicResource SubTextBrush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="双击空白处，或点击右上角 ＋ 添加文件夹分组"
+                           Foreground="{DynamicResource SubTextBrush}" FontSize="12" Margin="0,10,0,0"
+                           TextAlignment="Center" TextWrapping="Wrap" MaxWidth="220"/>
+                <TextBlock Text="也可以直接把文件夹 / 快捷方式拖进来"
+                           Foreground="{DynamicResource SubTextBrush}" FontSize="11" Margin="0,6,0,0"
+                           TextAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
