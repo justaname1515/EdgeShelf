@@ -59,6 +59,16 @@
                                       ToolTip="固定面板（不自动收回）" Click="PinButton_Click">
                             <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                         </ToggleButton>
+                        <Grid Grid.Column="1" Margin="8,0,8,0">
+                            <TextBox x:Name="SearchBox" Height="26" VerticalAlignment="Center"
+                                     FontSize="12" Padding="6,1"
+                                     Background="#332A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                     TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"
+                                     ToolTip="搜索抽屉里的快捷方式 / 文件（Esc 清空）"/>
+                            <TextBlock x:Name="SearchHint" Foreground="#66FFFFFF" FontSize="12"
+                                       Margin="8,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                       Text="&#xE721; 搜索…" FontFamily="Segoe MDL2 Assets, Microsoft YaHei UI"/>
+                        </Grid>
                         <Button Grid.Column="2" Style="{StaticResource HeaderIconBtn}" ToolTip="添加文件夹分组（可多选）" Click="AddGroup_Click">
                             <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>

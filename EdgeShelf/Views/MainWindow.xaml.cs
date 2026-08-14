@@ -397,6 +397,12 @@ public partial class MainWindow : Window
         if (_hwndSource == null) return;
         try
         {
+            if (IsCorner)
+            {
+                // 拐角：用普通透明窗口，避免闭合时残留半透明底框
+                WindowEffects.Reset(_hwndSource.Handle);
+                return;
+            }
             if (_cfg.Acrylic)
             {
                 bool ok = WindowEffects.TrySetAcrylic(_hwndSource.Handle, Color.FromRgb(0x12, 0x16, 0x20), 0.5);
@@ -783,6 +789,11 @@ public partial class MainWindow : Window
         menu.Items.Add(mergeHeader);
 
         menu.Items.Add(new Separator());
+        var rename = new MenuItem { Header = "重命名页签" };
+        rename.Click += (_, _) => RenameTab(tab);
+        menu.Items.Add(rename);
+
+        menu.Items.Add(new Separator());
         if (isSelf)
         {
             var del = new MenuItem { Header = "删除此侧边栏（含所有页签）" };
@@ -816,6 +827,24 @@ public partial class MainWindow : Window
             ConfigService.Save();
             Tray?.Refresh();
         }
+    }
+
+    /// <summary>重命名页签（自身页签重命名侧边栏名）。</summary>
+    private void RenameTab(SidebarConfig tab)
+    {
+        _suppressAutoHide = true;
+        try
+        {
+            var dlg = new RenameDialog("重命名页签", "页签名称", tab.Name) { Owner = this };
+            if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.Result))
+            {
+                tab.Name = dlg.Result.Trim();
+                RefreshTabs();
+                ConfigService.Save();
+                Tray?.Refresh();
+            }
+        }
+        finally { _suppressAutoHide = false; }
     }
 
     /// <summary>切换页签（0 = 自身）。</summary>
@@ -1277,6 +1306,24 @@ public partial class MainWindow : Window
 
     private void ClosePanel_Click(object sender, RoutedEventArgs e) => ClosePanel();
 
+    // ---------------- 搜索 ----------------
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var q = SearchBox.Text.Trim();
+        SearchHint.Visibility = q.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var g in _cfg.Groups) g.ApplySearch(q);
+    }
+
+    private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            SearchBox.Text = "";
+            e.Handled = true;
+        }
+    }
+
     private void OnDragOver(object sender, DragEventArgs e)
     {
         if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effects = DragDropEffects.Copy;
@@ -1385,8 +1432,59 @@ public partial class MainWindow : Window
             ScreenManager.Refresh();
             Dispatcher.BeginInvoke(new Action(PlaceWindow));
         }
+        else if (msg == WM_NCHITTEST)
+        {
+            // 点击穿透：透明区域不拦截点击（修复转角框挡住窗口最小化/最大化/关闭按钮）
+            int x = (short)((long)lParam & 0xFFFF);
+            int y = (short)(((long)lParam >> 16) & 0xFFFF);
+            if (!IsPointInContent(x, y))
+            {
+                handled = true;
+                return new IntPtr(HTTRANSPARENT);
+            }
+            handled = true;
+            return new IntPtr(HTCLIENT);
+        }
         return IntPtr.Zero;
     }
+
+    /// <summary>判断屏幕坐标是否落在可见内容上（用于点击穿透）。</summary>
+    private bool IsPointInContent(int x, int y)
+    {
+        if (_target == null) return false;
+        if (_open) return IsOverContent(_target, x, y);
+
+        if (IsCorner)
+        {
+            // 闭合转角：只算 L 形的条带区域
+            var wa = _target.WorkArea;
+            double s = _target.Scale;
+            bool left = EffectiveEdge == DockEdge.Left;
+            bool top = _cfg.Corner is DockCorner.TopLeft or DockCorner.TopRight;
+            double cornerX = left ? wa.Left : wa.Right;
+            double cornerY = top ? wa.Top : wa.Bottom;
+            double vLen = WindowAlongDip * s;      // 垂直臂长度（窗口高）
+            double hLen = CornerArmLen * s;          // 水平臂长度
+            double T = TabWidth * s;
+            const int m = 2;
+
+            bool inV = left ? x >= wa.Left - m && x <= wa.Left + T + m
+                            : x >= wa.Right - T - m && x <= wa.Right + m;
+            bool inVSpan = top ? y >= cornerY - m && y <= cornerY + vLen + m
+                               : y >= cornerY - vLen - m && y <= cornerY + m;
+            bool inH = top ? y >= cornerY - T - m && y <= cornerY + m
+                           : y >= cornerY - m && y <= cornerY + T + m;
+            bool inHSpan = left ? x >= cornerX - hLen - m && x <= cornerX + m
+                                : x >= cornerX - m && x <= cornerX + hLen + m;
+            return (inV && inVSpan) || (inH && inHSpan);
+        }
+
+        return IsOverContent(_target, x, y);
+    }
+
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTCLIENT = 1;
+    private const int HTTRANSPARENT = -1;
 
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);

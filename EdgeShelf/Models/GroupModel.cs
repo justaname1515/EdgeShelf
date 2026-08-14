@@ -61,7 +61,13 @@ public class GroupModel : INotifyPropertyChanged
         set { _itemCountText = value; OnPropertyChanged(); }
     }
 
+    private string _searchText = "";
+    public string SearchText => _searchText;
+    public bool SearchActive => _searchText.Length > 0;
+    public bool SearchNoMatch => SearchActive && Items.Count == 0;
+
     public ObservableCollection<ItemInfo> Items { get; } = new();
+    private readonly List<ItemInfo> _allItems = new();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string? name = null)
@@ -90,20 +96,20 @@ public class GroupModel : INotifyPropertyChanged
     {
         if (string.IsNullOrEmpty(CurrentPath)) CurrentPath = Path;
 
-        Items.Clear();
+        _allItems.Clear();
         ItemCountText = "…";
         try
         {
             if (!Directory.Exists(CurrentPath))
             {
                 ItemCountText = "文件夹不存在";
+                ApplySearch(_searchText);
                 return;
             }
 
-            var all = new List<ItemInfo>();
             foreach (var d in Directory.EnumerateDirectories(CurrentPath))
             {
-                all.Add(new ItemInfo
+                _allItems.Add(new ItemInfo
                 {
                     Name = System.IO.Path.GetFileName(d),
                     DisplayName = System.IO.Path.GetFileName(d),
@@ -115,7 +121,7 @@ public class GroupModel : INotifyPropertyChanged
             {
                 var ext = System.IO.Path.GetExtension(f).ToLowerInvariant();
                 bool isShortcut = ext is ".lnk" or ".url";
-                all.Add(new ItemInfo
+                _allItems.Add(new ItemInfo
                 {
                     Name = System.IO.Path.GetFileName(f),
                     DisplayName = isShortcut ? System.IO.Path.GetFileNameWithoutExtension(f) : System.IO.Path.GetFileName(f),
@@ -124,26 +130,45 @@ public class GroupModel : INotifyPropertyChanged
             }
 
             // 文件夹优先，其次是快捷方式，再是普通文件；同类按名称排序
-            all.Sort((a, b) =>
+            _allItems.Sort((a, b) =>
             {
                 int rankA = RankOf(a), rankB = RankOf(b);
                 if (rankA != rankB) return rankA.CompareTo(rankB);
                 return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
             });
 
-            foreach (var it in all)
+            foreach (var it in _allItems)
             {
                 it.Icon = ShellIcon.GetIcon(it.Path, small: false);
-                Items.Add(it);
             }
-            ItemCountText = $"{all.Count} 项";
+            ItemCountText = $"{_allItems.Count} 项";
         }
         catch
         {
             ItemCountText = "无法访问";
         }
         Icon = ShellIcon.GetIcon(Path, small: false);
+        ApplySearch(_searchText);
         OnPropertyChanged(nameof(IsDrilled));
+    }
+
+    /// <summary>按名称过滤抽屉里的内容（搜索）。</summary>
+    public void ApplySearch(string query)
+    {
+        _searchText = query?.Trim() ?? "";
+        Items.Clear();
+        foreach (var it in _allItems)
+        {
+            if (_searchText.Length == 0 ||
+                it.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                it.DisplayName.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            {
+                Items.Add(it);
+            }
+        }
+        if (SearchActive) IsCollapsed = false; // 搜索时自动展开抽屉
+        OnPropertyChanged(nameof(SearchActive));
+        OnPropertyChanged(nameof(SearchNoMatch));
     }
 
     private static int RankOf(ItemInfo it)

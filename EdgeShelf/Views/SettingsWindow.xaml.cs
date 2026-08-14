@@ -78,6 +78,30 @@ public partial class SettingsWindow : Window
             AccentPanel.Children.Add(btn);
         }
 
+        // 透明配色：窄条隐形（边缘悬停/点击仍然可用）
+        var transparentBtn = new Button
+        {
+            Width = 24,
+            Height = 24,
+            Margin = new Thickness(0, 0, 6, 0),
+            Tag = "#00000000",
+            Content = new TextBlock
+            {
+                Text = "透",
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            },
+            Background = new SolidColorBrush(Color.FromArgb(0, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = "透明（窄条隐形，鼠标移到边缘仍可弹出）"
+        };
+        transparentBtn.Click += Accent_Click;
+        AccentPanel.Children.Add(transparentBtn);
+
         UpdateLabels();
         _loading = false;
     }
