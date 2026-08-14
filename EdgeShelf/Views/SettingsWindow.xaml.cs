@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using EdgeShelf.Models;
 using EdgeShelf.Services;
@@ -14,6 +15,9 @@ public partial class SettingsWindow : Window
     private bool _loading = true;
     private bool _syncing;
     private double _maxOffset = 500;
+    private int _hkMods;
+    private int _hkKey;
+    private bool _hkCapturing;
 
     private static readonly string[] AccentPresets =
     {
@@ -58,6 +62,10 @@ public partial class SettingsWindow : Window
         MonitorCombo.SelectedIndex = Math.Clamp(_cfg.MonitorIndex, 0, Math.Max(0, monitors.Count - 1));
         MonitorCombo.IsEnabled = _cfg.FollowMouseMonitor;
         AutoStartCheck.IsChecked = ConfigService.Config.AutoStart;
+        HotkeyEnableCheck.IsChecked = ConfigService.Config.HotkeyEnabled;
+        _hkMods = ConfigService.Config.HotkeyModifiers;
+        _hkKey = ConfigService.Config.HotkeyKey;
+        HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
         _accent = _cfg.AccentColor;
 
         foreach (var preset in AccentPresets)
@@ -236,6 +244,62 @@ public partial class SettingsWindow : Window
         Close();
     }
 
+    // ---------------- 全局快捷键捕获 ----------------
+
+    private void HotkeyBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        _hkCapturing = true;
+        HotkeyBox.Text = "按下组合键…（Esc 取消）";
+    }
+
+    private void HotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!_hkCapturing) return;
+        e.Handled = true;
+
+        if (e.Key == Key.Escape)
+        {
+            _hkCapturing = false;
+            HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
+            return;
+        }
+
+        int mods = 0;
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) mods |= 2;
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0) mods |= 1;
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0) mods |= 4;
+        if ((Keyboard.Modifiers & ModifierKeys.Windows) != 0) mods |= 8;
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or
+            Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
+        {
+            HotkeyBox.Text = "继续按主键…";
+            return;
+        }
+        if (mods == 0 || key == Key.None)
+        {
+            HotkeyBox.Text = "需要至少一个修饰键（Ctrl / Alt / Shift / Win）";
+            return;
+        }
+        _hkMods = mods;
+        _hkKey = KeyInterop.VirtualKeyFromKey(key);
+        _hkCapturing = false;
+        HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
+    }
+
+    private static string FormatHotkey(int mods, int key)
+    {
+        if (key == 0) return "未设置";
+        var parts = new List<string>();
+        if ((mods & 2) != 0) parts.Add("Ctrl");
+        if ((mods & 1) != 0) parts.Add("Alt");
+        if ((mods & 4) != 0) parts.Add("Shift");
+        if ((mods & 8) != 0) parts.Add("Win");
+        parts.Add(KeyInterop.KeyFromVirtualKey(key).ToString());
+        return string.Join(" + ", parts);
+    }
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         _cfg.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? "侧边栏" : NameBox.Text.Trim();
@@ -260,10 +324,14 @@ public partial class SettingsWindow : Window
         _cfg.AccentColor = _accent;
         ConfigService.Config.AutoStart = AutoStartCheck.IsChecked == true;
         ConfigService.SetAutoStart(ConfigService.Config.AutoStart);
+        ConfigService.Config.HotkeyEnabled = HotkeyEnableCheck.IsChecked == true;
+        ConfigService.Config.HotkeyModifiers = _hkMods;
+        ConfigService.Config.HotkeyKey = _hkKey;
         ConfigService.Save();
 
         _main.ApplyConfig();
         _main.RefreshGroups();
+        _main.RequestHotkeyReapply();
         Close();
     }
 }

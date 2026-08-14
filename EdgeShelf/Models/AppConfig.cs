@@ -7,6 +7,11 @@ public class AppConfig
     /// <summary>用户自选/自建的快捷方式存放文件夹（卸载软件后快捷方式仍在）。</summary>
     public string ShortcutFolder { get; set; } = "";
 
+    /// <summary>全局快捷键（固定 ⇄ 无痕切换）。</summary>
+    public bool HotkeyEnabled { get; set; }
+    public int HotkeyModifiers { get; set; }
+    public int HotkeyKey { get; set; }
+
     // ---- 以下为旧版单侧边栏字段，仅用于迁移 ----
     public DockEdge Edge { get; set; }
     public bool FollowMouseMonitor { get; set; } = true;

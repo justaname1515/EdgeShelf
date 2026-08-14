@@ -45,11 +45,12 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 头部：固定 ▼ / 添加文件夹 / 添加快捷方式 / 设置 / 收起 -->
+                    <!-- 头部：固定 ▼ / 搜索 / 添加文件夹 / 添加快捷方式 / 无痕 / 设置 / 收起 -->
                     <Grid Grid.Row="0" Height="42" Background="{DynamicResource HeaderBrush}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -76,10 +77,14 @@
                                 Click="AddShortcut_Click">
                             <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>
-                        <Button Grid.Column="4" Style="{StaticResource HeaderIconBtn}" ToolTip="设置" Click="Settings_Click">
+                        <Button Grid.Column="4" Style="{StaticResource HeaderIconBtn}" ToolTip="无痕模式（自动隐藏，仅托盘 / 快捷键恢复）"
+                                Click="Stealth_Click">
+                            <TextBlock Text="&#xE7B3;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="5" Style="{StaticResource HeaderIconBtn}" ToolTip="设置" Click="Settings_Click">
                             <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>
-                        <Button Grid.Column="5" Style="{StaticResource HeaderIconBtn}" ToolTip="收起面板" Click="ClosePanel_Click">
+                        <Button Grid.Column="6" Style="{StaticResource HeaderIconBtn}" ToolTip="收起面板" Click="ClosePanel_Click">
                             <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
                         </Button>
                     </Grid>

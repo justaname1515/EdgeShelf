@@ -66,6 +66,10 @@ public partial class MainWindow : Window
     public event Action<MainWindow>? MergeRequested;
     public event Action<SidebarConfig>? UnmergeRequested;
     public event Action<SidebarConfig, MainWindow>? MergeTabRequested;
+    public event Action? GlobalHotkeyPressed;
+    public event Action? HotkeyReapplyRequested;
+
+    public void RequestHotkeyReapply() => HotkeyReapplyRequested?.Invoke();
 
     /// <summary>当前选中的页签配置（决定显示哪一组抽屉）。</summary>
     public SidebarConfig ActiveConfig
@@ -380,11 +384,21 @@ public partial class MainWindow : Window
 
     public void ApplyConfig()
     {
+        // 固定 ⇄ 正常绑定：固定状态强制蓝条可见可触碰，避免"固定但碰不到"
+        if (_cfg.Pinned) _cfg.Mode = DockMode.Normal;
+
         if (ColorConverter.ConvertFromString(_cfg.AccentColor) is Color accent)
             Application.Current.Resources["AccentBrush"] = new SolidColorBrush(accent);
 
         byte alpha = (byte)Math.Round(Math.Clamp(_cfg.Opacity, 0.0, 1.0) * 235);
         Application.Current.Resources["PanelBrush"] = new SolidColorBrush(Color.FromArgb(alpha, 0x14, 0x1A, 0x24));
+
+        // 模式：透明 / 无痕时窄条不可见
+        bool barVisible = _cfg.Mode == DockMode.Normal;
+        var barBrush = (Brush)Application.Current.Resources["AccentBrush"];
+        Tab.Background = barVisible ? barBrush : Brushes.Transparent;
+        TabH.Background = barVisible ? barBrush : Brushes.Transparent;
+        TabArrow.Visibility = barVisible ? Visibility.Visible : Visibility.Collapsed;
 
         PinButton.IsChecked = _cfg.Pinned;
         ApplyEdgeLayout();
@@ -482,11 +496,20 @@ public partial class MainWindow : Window
             bool nearEdge = IsNearEdge(m, p.X, p.Y);
             bool overContent = IsOverContent(m, p.X, p.Y);
 
-            bool wantOpen = _cfg.Pinned || overContent || _resizingCross || _resizingAlong || _tabDragging;
-            if (nearEdge)
+            bool wantOpen = _cfg.Pinned || _resizingCross || _resizingAlong || _tabDragging;
+            if (_cfg.Mode != DockMode.Stealth)
             {
-                if (_nearSince == default) _nearSince = DateTime.UtcNow;
-                else if ((DateTime.UtcNow - _nearSince).TotalMilliseconds > 140) wantOpen = true;
+                // 透明 / 正常：边缘接近触发；无痕模式下完全关闭鼠标唤起
+                wantOpen = wantOpen || overContent;
+                if (nearEdge)
+                {
+                    if (_nearSince == default) _nearSince = DateTime.UtcNow;
+                    else if ((DateTime.UtcNow - _nearSince).TotalMilliseconds > 140) wantOpen = true;
+                }
+                else
+                {
+                    _nearSince = default;
+                }
             }
             else
             {
@@ -1221,11 +1244,55 @@ public partial class MainWindow : Window
 
     public void SetPinned(bool pinned)
     {
+        if (pinned) _cfg.Mode = DockMode.Normal; // 固定 ⇄ 正常绑定：固定时蓝条可见可触碰，不会"碰不到"
         _cfg.Pinned = pinned;
         ConfigService.Save();
         PinButton.IsChecked = pinned;
         Tray?.Refresh();
+        if (pinned) ApplyConfig();
         if (pinned && !_open) AnimateTo(true);
+    }
+
+    /// <summary>切换模式（正常 / 透明 / 无痕）。</summary>
+    public void SetMode(DockMode mode)
+    {
+        _cfg.Mode = mode;
+        if (mode != DockMode.Normal)
+        {
+            _cfg.Pinned = false; // 透明 / 无痕不固定，避免"固定但碰不到"
+            if (mode == DockMode.Stealth && _open) AnimateTo(false); // 无痕：自动隐藏，不再被鼠标唤起
+        }
+        ConfigService.Save();
+        ApplyConfig();
+        Tray?.Refresh();
+    }
+
+    /// <summary>进入无痕模式（界面按钮）。</summary>
+    private void Stealth_Click(object sender, RoutedEventArgs e) => SetMode(DockMode.Stealth);
+
+    /// <summary>全局快捷键切换：固定 ⇄ 无痕。</summary>
+    public void TogglePinnedStealth()
+    {
+        if (_cfg.Pinned) SetMode(DockMode.Stealth);
+        else SetPinned(true);
+    }
+
+    private bool _hotkeyRegistered;
+
+    public void RegisterHotkey(int modifiers, int key)
+    {
+        UnregisterHotkey();
+        if (_hwndSource == null || key == 0) return;
+        _hotkeyRegistered = RegisterHotKey(_hwndSource.Handle, HotkeyId, (uint)modifiers, (uint)key);
+    }
+
+    public void UnregisterHotkey()
+    {
+        if (_hotkeyRegistered && _hwndSource != null)
+        {
+            UnregisterHotKey(_hwndSource.Handle, HotkeyId);
+            _hotkeyRegistered = false;
+        }
     }
 
     public void TogglePanel()
@@ -1445,6 +1512,12 @@ public partial class MainWindow : Window
             handled = true;
             return new IntPtr(HTCLIENT);
         }
+        else if (msg == WM_HOTKEY)
+        {
+            GlobalHotkeyPressed?.Invoke();
+            handled = true;
+            return IntPtr.Zero;
+        }
         return IntPtr.Zero;
     }
 
@@ -1452,6 +1525,17 @@ public partial class MainWindow : Window
     private bool IsPointInContent(int x, int y)
     {
         if (_target == null) return false;
+
+        if (_cfg.Mode != DockMode.Normal)
+        {
+            // 透明 / 无痕：窄条不可触碰（鼠标掠过），只有展开的面板可点击
+            double s = _target.Scale;
+            var p = Panel.PointToScreen(new Point(0, 0));
+            double px = p.X * s, py = p.Y * s;
+            double pw = Math.Max(0, Panel.ActualWidth * s), ph = Math.Max(0, Panel.ActualHeight * s);
+            return x >= px && x <= px + pw && y >= py && y <= py + ph;
+        }
+
         if (_open) return IsOverContent(_target, x, y);
 
         if (IsCorner)
@@ -1482,9 +1566,17 @@ public partial class MainWindow : Window
         return IsOverContent(_target, x, y);
     }
 
+    private const int WM_HOTKEY = 0x0312;
+    private const int HotkeyId = 0xE5F1;
     private const int WM_NCHITTEST = 0x0084;
     private const int HTCLIENT = 1;
     private const int HTTRANSPARENT = -1;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);

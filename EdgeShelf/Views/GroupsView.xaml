@@ -46,7 +46,11 @@
                                 <!-- 内容（可折叠） -->
                                 <StackPanel Margin="0,6,0,0"
                                             Visibility="{Binding IsCollapsed, Converter={StaticResource InverseBoolToVis}}">
-                                    <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl ItemsSource="{Binding Items}"
+                                                  PreviewMouseLeftButtonDown="Tiles_PreviewMouseLeftButtonDown"
+                                                  PreviewMouseMove="Tiles_PreviewMouseMove"
+                                                  PreviewMouseLeftButtonUp="Tiles_PreviewMouseLeftButtonUp"
+                                                  ToolTip="按住图标拖动可手动排序">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <WrapPanel/>

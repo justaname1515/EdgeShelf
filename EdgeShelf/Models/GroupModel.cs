@@ -30,6 +30,9 @@ public class GroupModel : INotifyPropertyChanged
     public string Name { get; set; } = "";
     public string Path { get; set; } = "";
 
+    /// <summary>手动排序：文件名按此顺序排在前面（其余按默认规则跟在后面）。</summary>
+    public List<string> OrderOverride { get; set; } = new();
+
     private string _currentPath = "";
     /// <summary>当前显示的位置（钻入子文件夹后为其路径）。</summary>
     public string CurrentPath
@@ -137,6 +140,26 @@ public class GroupModel : INotifyPropertyChanged
                 return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
             });
 
+            // 手动排序：OrderOverride 中的项按指定顺序排到最前
+            if (OrderOverride.Count > 0)
+            {
+                var ordered = new List<ItemInfo>();
+                var remaining = new List<ItemInfo>(_allItems);
+                foreach (var name in OrderOverride)
+                {
+                    var found = remaining.FirstOrDefault(it =>
+                        string.Equals(it.Name, name, StringComparison.OrdinalIgnoreCase));
+                    if (found != null)
+                    {
+                        ordered.Add(found);
+                        remaining.Remove(found);
+                    }
+                }
+                ordered.AddRange(remaining);
+                _allItems.Clear();
+                _allItems.AddRange(ordered);
+            }
+
             foreach (var it in _allItems)
             {
                 it.Icon = ShellIcon.GetIcon(it.Path, small: false);
@@ -168,6 +191,15 @@ public class GroupModel : INotifyPropertyChanged
         }
         if (SearchActive) IsCollapsed = false; // 搜索时自动展开抽屉
         OnPropertyChanged(nameof(SearchActive));
+        OnPropertyChanged(nameof(SearchNoMatch));
+    }
+
+    /// <summary>手动排序：把给定顺序写回（并持久化为 OrderOverride）。</summary>
+    public void SetItemOrder(List<ItemInfo> newOrder)
+    {
+        Items.Clear();
+        foreach (var it in newOrder) Items.Add(it);
+        OrderOverride = Items.Select(it => it.Name).ToList();
         OnPropertyChanged(nameof(SearchNoMatch));
     }
 

@@ -56,6 +56,30 @@ public class TrayIcon : IDisposable
             var w = windows[i];
             var sub = new ToolStripMenuItem($"{i + 1}. {w.SidebarConfig.Name}");
             sub.DropDownItems.Add(new ToolStripMenuItem("展开 / 收起面板", null, (_, _) => w.TogglePanel()));
+
+            // 模式切换
+            var modeMenu = new ToolStripMenuItem("切换模式");
+            foreach (var (label, mode) in new[]
+                     {
+                         ("正常", EdgeShelf.Models.DockMode.Normal),
+                         ("透明", EdgeShelf.Models.DockMode.Transparent),
+                         ("无痕", EdgeShelf.Models.DockMode.Stealth)
+                     })
+            {
+                var item = new ToolStripMenuItem(label) { Checked = w.SidebarConfig.Mode == mode };
+                item.Click += (_, _) => w.SetMode(mode);
+                modeMenu.DropDownItems.Add(item);
+            }
+            modeMenu.DropDownItems.Add(new ToolStripSeparator());
+            var pinItem = new ToolStripMenuItem("固定面板")
+            {
+                CheckOnClick = true,
+                Checked = w.SidebarConfig.Pinned
+            };
+            pinItem.Click += (_, _) => w.SetPinned(pinItem.Checked);
+            modeMenu.DropDownItems.Add(pinItem);
+            sub.DropDownItems.Add(modeMenu);
+
             sub.DropDownItems.Add(new ToolStripMenuItem("设置…", null, (_, _) => w.OpenSettings()));
             sub.DropDownItems.Add(new ToolStripMenuItem("删除", null, (_, _) => w.RequestDeleteSidebar()));
             menu.Items.Add(sub);

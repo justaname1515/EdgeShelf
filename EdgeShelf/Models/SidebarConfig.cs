@@ -18,12 +18,24 @@ public enum DockCorner
     BottomRight
 }
 
+/// <summary>侧边栏模式：控制窄条可见性、可触碰性与边缘触发。</summary>
+public enum DockMode
+{
+    /// <summary>正常：蓝条可见、可拖动，边缘接近触发。</summary>
+    Normal,
+    /// <summary>透明：蓝条不可见且不可触碰（鼠标掠过），边缘接近仍触发。</summary>
+    Transparent,
+    /// <summary>无痕：蓝条不可见不可触碰，边缘触发关闭，只能托盘 / 快捷键恢复。</summary>
+    Stealth
+}
+
 /// <summary>一个侧边栏的独立配置。</summary>
 public class SidebarConfig
 {
     public string Name { get; set; } = "侧边栏";
     public DockEdge Edge { get; set; } = DockEdge.Left;
     public DockCorner Corner { get; set; } = DockCorner.None;
+    public DockMode Mode { get; set; } = DockMode.Normal;
 
     /// <summary>沿边缘的偏移（DIPs）；-1 表示居中。</summary>
     public double EdgeOffset { get; set; } = -1;

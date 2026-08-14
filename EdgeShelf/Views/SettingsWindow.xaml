@@ -136,6 +136,23 @@
         <TextBlock Text="全局" FontWeight="SemiBold" FontSize="13" Foreground="#E8FFFFFF"/>
 
         <CheckBox x:Name="AutoStartCheck" Margin="0,10,0,0" Content="开机自启（后台常驻）" Foreground="#CCFFFFFF" FontSize="12.5"/>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="全局快捷键" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+            <StackPanel Grid.Column="1">
+                <TextBox x:Name="HotkeyBox" FontSize="12.5" Padding="4,3" IsReadOnly="True"
+                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                         ToolTip="点击后按下组合键（如 Ctrl+Alt+E）；Esc 取消"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown" GotKeyboardFocus="HotkeyBox_GotFocus"/>
+                <CheckBox x:Name="HotkeyEnableCheck" Content="启用（固定 ⇄ 无痕 切换）" Margin="0,4,0,0"
+                          Foreground="#CCFFFFFF" FontSize="12"/>
+                <TextBlock Text="点击输入框后按 Ctrl / Alt / Shift + 一个字母键" Foreground="#88FFFFFF" FontSize="10.5" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Grid>
         <Button Content="打开数据文件夹（%APPDATA%\EdgeShelf）" Margin="0,10,0,0" HorizontalAlignment="Left"
                 Padding="10,5" FontSize="12" Click="OpenDataDir_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
                 BorderBrush="#33FFFFFF" BorderThickness="1"/>

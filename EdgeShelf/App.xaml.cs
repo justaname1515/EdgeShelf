@@ -67,6 +67,8 @@ public partial class App : Application
         _tray.Install();
         foreach (var w in _windows) w.Tray = _tray;
 
+        ApplyHotkey();
+
         // 调试用：EdgeShelf.exe --settings 启动后直接打开第一个侧边栏的设置
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase) && _windows.Count > 0)
             _windows[0].OpenSettings();
@@ -81,7 +83,29 @@ public partial class App : Application
         w.MergeRequested += target => MergeSidebars(w, target);
         w.UnmergeRequested += tab => UnmergeTab(w, tab);
         w.MergeTabRequested += (tab, target) => MergeTabTo(w, tab, target);
+        w.GlobalHotkeyPressed += OnGlobalHotkey;
+        w.HotkeyReapplyRequested += ApplyHotkey;
         return w;
+    }
+
+    /// <summary>全局快捷键：固定 ⇄ 无痕（对所有侧边栏生效）。</summary>
+    private void OnGlobalHotkey()
+    {
+        bool anyPinned = _windows.Any(w => w.SidebarConfig.Pinned);
+        foreach (var w in _windows)
+        {
+            if (anyPinned) w.SetMode(DockMode.Stealth);
+            else w.SetPinned(true);
+        }
+    }
+
+    /// <summary>根据配置注册/注销全局快捷键（注册在第一个窗口上）。</summary>
+    public void ApplyHotkey()
+    {
+        foreach (var w in _windows) w.UnregisterHotkey();
+        var cfg = ConfigService.Config;
+        if (!cfg.HotkeyEnabled || cfg.HotkeyKey == 0 || _windows.Count == 0) return;
+        _windows[0].RegisterHotkey(cfg.HotkeyModifiers, cfg.HotkeyKey);
     }
 
     /// <summary>把一个页签合并进另一个侧边栏（变成它的页签）。</summary>
@@ -111,6 +135,7 @@ public partial class App : Application
 
         to.SelectLastTab();
         _tray?.Refresh();
+        ApplyHotkey();
         ConfigService.Save();
     }
 
@@ -125,6 +150,7 @@ public partial class App : Application
         host.RefreshTabs();
         host.RefreshGroups();
         _tray?.Refresh();
+        ApplyHotkey();
         ConfigService.Save();
     }
 
@@ -144,6 +170,7 @@ public partial class App : Application
             nw.Tray = _tray;
         }
         _tray?.Refresh();
+        ApplyHotkey();
         ConfigService.Save();
     }
 

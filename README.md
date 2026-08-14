@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-1.7.0-4c8dff)
+![Version](https://img.shields.io/badge/version-1.8.1-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 参考旧版 QQ 侧边条一样的桌面「边缘收纳栏」——不替换桌面，屏幕边缘一条蓝色窄条，鼠标移过去滑出面板，把文件夹和快捷方式收纳整齐。
@@ -64,7 +64,7 @@ EdgeShelf 是一个 **Windows 10/11 桌面边缘收纳工具**，类似 Fences /
 | 方式 | 说明 |
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），无需安装 .NET，双击即用 |
-| **`EdgeShelf-1.7.0-win-x64.zip`** | 便携压缩包，解压后运行其中的 exe |
+| **`EdgeShelf-1.8.1-win-x64.zip`** | 便携压缩包，解压后运行其中的 exe |
 
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。
 
@@ -119,7 +119,7 @@ cd Release-EdgeShelf
 ```
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序
-├── EdgeShelf-1.7.0-win-x64.zip  便携压缩包
+├── EdgeShelf-1.8.1-win-x64.zip  便携压缩包
 ├── README.md
 ├── build.ps1                    构建脚本
 └── EdgeShelf/                   源码
@@ -161,6 +161,16 @@ EdgeShelf 不替换桌面——桌面图标和壁纸原样保留，它只是一�
 ---
 
 ## 📝 更新日志
+
+### v1.8.1
+- **固定 ⇄ 正常绑定**：固定时强制蓝条可见可触碰；进入透明 / 无痕自动取消固定——不会再出现"固定但碰不到"的状态（旧配置遗留组合启动时自动修正）
+- 抽屉内**手动排序**：按住图标拖动调整顺序，自动保存并持久化
+
+### v1.8.0
+- **模式系统**：正常（蓝条可见可拖动）/ **透明**（蓝条隐形、鼠标掠过、边缘接近仍触发）/ **无痕**（蓝条隐形、边缘触发关闭、只能托盘 / 快捷键恢复）/ **固定**（面板固定）
+- 面板头部新增**无痕模式按钮**，点击自动隐藏且不再被鼠标唤起
+- **全局快捷键**：设置里自定义（默认无快捷键，需要手动设置，如 Ctrl+Alt+E），一键在**固定 ⇄ 无痕**之间切换
+- 托盘右键可切换所有模式（每个侧边栏的「切换模式」子菜单）
 
 ### v1.7.0
 - 右键页签可**重命名**
