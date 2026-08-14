@@ -1529,11 +1529,13 @@ public partial class MainWindow : Window
         if (_cfg.Mode != DockMode.Normal)
         {
             // 透明 / 无痕：窄条不可触碰（鼠标掠过），只有展开的面板可点击
-            double s = _target.Scale;
+            // 注意：PointToScreen 已返回物理像素，不能再次乘以缩放系数
             var p = Panel.PointToScreen(new Point(0, 0));
-            double px = p.X * s, py = p.Y * s;
-            double pw = Math.Max(0, Panel.ActualWidth * s), ph = Math.Max(0, Panel.ActualHeight * s);
-            return x >= px && x <= px + pw && y >= py && y <= py + ph;
+            double px = p.X, py = p.Y;
+            double pw = Math.Max(0, Panel.ActualWidth * _target.Scale);
+            double ph = Math.Max(0, Panel.ActualHeight * _target.Scale);
+            const int m = 2;
+            return x >= px - m && x <= px + pw + m && y >= py - m && y <= py + ph + m;
         }
 
         if (_open) return IsOverContent(_target, x, y);
