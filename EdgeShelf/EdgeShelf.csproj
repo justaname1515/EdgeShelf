@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -15,9 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 去掉 WinForms 的隐式全局 using，避免与 WPF 类型重名冲突 -->
+    <!-- 鍘绘帀 WinForms 鐨勯殣寮忓叏灞€ using锛岄伩鍏嶄笌 WPF 绫诲瀷閲嶅悕鍐茬獊 -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>
 
 </Project>
+
