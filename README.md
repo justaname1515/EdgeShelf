@@ -1,5 +1,3 @@
-# EdgeShelf
-由deepseek创建开发的一个桌面整理软件
 # EdgeShelf 边缘收纳
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
