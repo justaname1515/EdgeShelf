@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-1.8.2-4c8dff)
+![Version](https://img.shields.io/badge/version-1.9.0-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 参考旧版 QQ 侧边条一样的桌面「边缘收纳栏」——不替换桌面，屏幕边缘一条蓝色窄条，鼠标移过去滑出面板，把文件夹和快捷方式收纳整齐。
@@ -64,7 +64,7 @@ EdgeShelf 是一个 **Windows 10/11 桌面边缘收纳工具**，类似 Fences /
 | 方式 | 说明 |
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），无需安装 .NET，双击即用 |
-| **`EdgeShelf-1.8.2-win-x64.zip`** | 便携压缩包，解压后运行其中的 exe |
+| **`EdgeShelf-1.9.0-win-x64.zip`** | 便携压缩包，解压后运行其中的 exe |
 
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。
 
@@ -119,7 +119,7 @@ cd Release-EdgeShelf
 ```
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序
-├── EdgeShelf-1.8.2-win-x64.zip  便携压缩包
+├── EdgeShelf-1.9.0-win-x64.zip  便携压缩包
 ├── README.md
 ├── build.ps1                    构建脚本
 └── EdgeShelf/                   源码
@@ -161,6 +161,9 @@ EdgeShelf 不替换桌面——桌面图标和壁纸原样保留，它只是一�
 ---
 
 ## 📝 更新日志
+
+### v1.9.0
+- 抽屉内快捷方式**右键菜单**：删除（移入回收站）/ 移动到其他抽屉（跨侧边栏可选，同名自动加序号）
 
 ### v1.8.2
 - **修复开机自启动失效**：自启动采用双保险（HKCU Run 注册表 + 启动文件夹快捷方式），每次启动自动用当前 exe 路径自愈；新增启动日志便于诊断

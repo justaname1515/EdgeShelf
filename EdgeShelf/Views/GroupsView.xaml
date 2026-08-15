@@ -59,7 +59,15 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Button Width="52" Height="58" Margin="1" Background="Transparent" BorderThickness="0"
-                                                        ToolTip="{Binding Path}" Click="Item_Click">
+                                                        ToolTip="{Binding Path}" Click="Item_Click"
+                                                        ContextMenuOpening="Tile_ContextMenuOpening">
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="删除（移入回收站）" Click="DeleteItem_Click"/>
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
                                                     <StackPanel>
                                                         <Image Source="{Binding Icon}" Width="32" Height="32" Stretch="Uniform"/>
                                                         <TextBlock Text="{Binding DisplayName}" FontSize="10.5"

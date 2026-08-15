@@ -13,6 +13,11 @@ public partial class GroupsView : UserControl
     public event EventHandler<GroupModel>? RenameRequested;
     public event EventHandler<GroupModel>? DeleteRequested;
     public event EventHandler<GroupModel>? NewSubfolderRequested;
+    public event Action<ItemInfo, GroupModel>? DeleteItemRequested;
+    public event Action<ItemInfo, GroupModel, GroupModel>? MoveItemRequested;
+
+    /// <summary>供主窗口注入：给定源抽屉，返回可移动到的其他抽屉列表。</summary>
+    public Func<GroupModel, IEnumerable<GroupModel>>? DrawersProvider { get; set; }
 
     public GroupsView()
     {
@@ -221,5 +226,58 @@ public partial class GroupsView : UserControl
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
         }
         catch { }
+    }
+
+    // ---------------- 瓦片右键菜单（删除 / 移动） ----------------
+
+    private void Tile_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not ItemInfo it) return;
+        if (FindGroup(sender as DependencyObject) is not GroupModel src) return;
+        var menu = (sender as FrameworkElement)?.ContextMenu;
+        if (menu == null) return;
+
+        var deleteMenu = menu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header as string == "删除（移入回收站）");
+        var moveMenu = menu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header as string == "移动到其他抽屉…");
+        if (deleteMenu != null) deleteMenu.Visibility = it.IsDirectory ? Visibility.Collapsed : Visibility.Visible;
+        if (moveMenu == null) return;
+
+        moveMenu.Items.Clear();
+        var targets = DrawersProvider?.Invoke(src)?.Where(g => !ReferenceEquals(g, src)).ToList() ?? new List<GroupModel>();
+        if (targets.Count == 0)
+        {
+            moveMenu.Items.Add(new MenuItem { Header = "（没有其他抽屉）", IsEnabled = false });
+        }
+        else
+        {
+            foreach (var g in targets)
+            {
+                var item = new MenuItem { Header = g.Name };
+                var target = g;
+                item.Click += (_, _) => MoveItemRequested?.Invoke(it, src, target);
+                moveMenu.Items.Add(item);
+            }
+        }
+    }
+
+    private void MoveTo_Click(object sender, RoutedEventArgs e)
+    {
+        // 实际移动由子菜单项触发（MoveItemRequested），此入口保留为空以防误触发
+        if (sender is MenuItem m && m.Items.Count == 0) e.Handled = true;
+    }
+
+    private void DeleteItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.DataContext is not ItemInfo it) return;
+        if (FindGroupFromMenu(sender as MenuItem) is not GroupModel g || it.IsDirectory) return;
+        DeleteItemRequested?.Invoke(it, g);
+    }
+
+    /// <summary>从 ContextMenu 的 PlacementTarget 找到所在分组。</summary>
+    private static GroupModel? FindGroupFromMenu(MenuItem? item)
+    {
+        if (item?.Parent is ContextMenu cm && cm.PlacementTarget is FrameworkElement fe)
+            return FindGroup(fe);
+        return null;
     }
 }

@@ -92,6 +92,9 @@ public partial class MainWindow : Window
         GroupsView.RenameRequested += (_, g) => RenameGroup(g);
         GroupsView.DeleteRequested += (_, g) => DeleteGroup(g);
         GroupsView.NewSubfolderRequested += (_, g) => CreateSubfolder(g);
+        GroupsView.DeleteItemRequested += (it, g) => DeleteDrawerItem(it, g);
+        GroupsView.MoveItemRequested += (it, from, to) => MoveDrawerItem(it, from, to);
+        GroupsView.DrawersProvider = src => AllDrawers().Where(g => !ReferenceEquals(g, src));
         Instances.Add(this);
         RefreshTabs();
 
@@ -1082,6 +1085,67 @@ public partial class MainWindow : Window
         ActiveConfig.Groups.Remove(g);
         ConfigService.Save();
         RefreshGroups();
+    }
+
+    // ---------------- 抽屉内快捷方式：删除 / 移动 ----------------
+
+    /// <summary>收集所有侧边栏（含合并页签）里的抽屉。</summary>
+    private static IEnumerable<GroupModel> AllDrawers()
+    {
+        var list = new List<GroupModel>();
+        void AddSidebar(SidebarConfig cfg)
+        {
+            list.AddRange(cfg.Groups);
+            foreach (var t in cfg.Tabs) list.AddRange(t.Groups);
+        }
+        foreach (var w in Instances) AddSidebar(w.SidebarConfig);
+        return list.Distinct();
+    }
+
+    /// <summary>删除抽屉里的快捷方式 / 文件（移入回收站）。</summary>
+    private void DeleteDrawerItem(ItemInfo it, GroupModel g)
+    {
+        if (it.IsDirectory) return;
+        var confirm = MessageBox.Show(this, $"确定删除「{it.DisplayName}」？将移入回收站（磁盘文件夹不受影响）。",
+            "删除", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.OK) return;
+        try
+        {
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(it.Path,
+                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            g.RefreshItems();
+            ConfigService.Save();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"删除失败：{ex.Message}", "删除", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>把快捷方式 / 文件移动到另一个抽屉（同名自动加序号）。</summary>
+    private void MoveDrawerItem(ItemInfo it, GroupModel from, GroupModel to)
+    {
+        if (it.IsDirectory) return;
+        try
+        {
+            string dest = System.IO.Path.Combine(to.CurrentPath, it.Name);
+            int i = 2;
+            while (File.Exists(dest))
+            {
+                dest = System.IO.Path.Combine(to.CurrentPath,
+                    $"{System.IO.Path.GetFileNameWithoutExtension(it.Name)} ({i}){System.IO.Path.GetExtension(it.Name)}");
+                i++;
+            }
+            File.Move(it.Path, dest);
+            from.RefreshItems();
+            to.RefreshItems();
+            ConfigService.Save();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"移动失败：{ex.Message}", "移动", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void CreateSubfolder(GroupModel g)
