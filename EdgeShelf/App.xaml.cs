@@ -55,6 +55,18 @@ public partial class App : Application
 
         ConfigService.Load();
 
+        // 自启自愈：若已启用自启动，用当前 exe 路径刷新注册表与启动文件夹，防止路径失效
+        if (ConfigService.Config.AutoStart) ConfigService.SetAutoStart(true);
+
+        // 启动日志：确认应用是否真的被启动（开机自启诊断用）
+        try
+        {
+            Directory.CreateDirectory(ConfigService.DataDir);
+            File.AppendAllText(Path.Combine(ConfigService.DataDir, "error.log"),
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] EdgeShelf 启动\r\n");
+        }
+        catch { }
+
         foreach (var cfg in ConfigService.Config.Sidebars)
         {
             var w = CreateWindow(cfg);

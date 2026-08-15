@@ -79,7 +79,16 @@ public static class ConfigService
             File.WriteAllText(ConfigPath,
                 JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // 保存失败要能看到，否则会静默丢失配置
+            try
+            {
+                File.AppendAllText(Path.Combine(DataDir, "error.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 保存配置失败: {ex}\r\n\r\n");
+            }
+            catch { }
+        }
     }
 
     public static bool GetAutoStart()
@@ -94,21 +103,41 @@ public static class ConfigService
 
     public static void SetAutoStart(bool enable)
     {
+        // 主机制：HKCU Run 注册表项
         try
         {
+            var exe = CurrentExePath();
             using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+            if (enable) key?.SetValue("EdgeShelf", $"\"{exe}\"");
+            else key?.DeleteValue("EdgeShelf", false);
+        }
+        catch { }
+
+        // 备份机制：启动文件夹快捷方式（与 Run 键双保险；单实例互斥保证不会启动两份）
+        try
+        {
+            string startup = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+            string lnkPath = Path.Combine(startup, "EdgeShelf.lnk");
             if (enable)
             {
-                var exe = Environment.ProcessPath;
-                if (string.IsNullOrEmpty(exe))
-                    exe = Path.Combine(AppContext.BaseDirectory, "EdgeShelf.exe");
-                key?.SetValue("EdgeShelf", $"\"{exe}\"");
+                dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!)!;
+                dynamic lnk = shell.CreateShortcut(lnkPath);
+                lnk.TargetPath = CurrentExePath();
+                lnk.Save();
             }
-            else
+            else if (File.Exists(lnkPath))
             {
-                key?.DeleteValue("EdgeShelf", false);
+                File.Delete(lnkPath);
             }
         }
         catch { }
+    }
+
+    private static string CurrentExePath()
+    {
+        var exe = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(exe))
+            exe = Path.Combine(AppContext.BaseDirectory, "EdgeShelf.exe");
+        return exe;
     }
 }

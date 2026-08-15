@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using System.Windows.Media;
 using EdgeShelf.Services;
 
@@ -51,6 +52,8 @@ public class GroupModel : INotifyPropertyChanged
     }
 
     private ImageSource? _icon;
+    /// <summary>图标（运行时生成，不参与配置序列化——ImageSource 无法被 System.Text.Json 序列化）。</summary>
+    [JsonIgnore]
     public ImageSource? Icon
     {
         get => _icon;
@@ -69,6 +72,8 @@ public class GroupModel : INotifyPropertyChanged
     public bool SearchActive => _searchText.Length > 0;
     public bool SearchNoMatch => SearchActive && Items.Count == 0;
 
+    /// <summary>运行时项集合（由磁盘枚举生成，不参与配置序列化）。</summary>
+    [JsonIgnore]
     public ObservableCollection<ItemInfo> Items { get; } = new();
     private readonly List<ItemInfo> _allItems = new();
 
