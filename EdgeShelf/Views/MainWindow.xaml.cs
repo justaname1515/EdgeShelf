@@ -94,6 +94,8 @@ public partial class MainWindow : Window
         GroupsView.NewSubfolderRequested += (_, g) => CreateSubfolder(g);
         GroupsView.DeleteItemRequested += (it, g) => DeleteDrawerItem(it, g);
         GroupsView.MoveItemRequested += (it, from, to) => MoveDrawerItem(it, from, to);
+        GroupsView.RenameItemRequested += (it, g) => RenameDrawerItem(it, g);
+        GroupsView.MoveDrawerRequested += (g, move) => MoveDrawer(g, move);
         GroupsView.DrawersProvider = src => AllDrawers().Where(g => !ReferenceEquals(g, src));
         Instances.Add(this);
         RefreshTabs();
@@ -389,6 +391,7 @@ public partial class MainWindow : Window
     {
         // 固定 ⇄ 正常绑定：固定状态强制蓝条可见可触碰，避免"固定但碰不到"
         if (_cfg.Pinned) _cfg.Mode = DockMode.Normal;
+        ListViewToggle.IsChecked = _cfg.ListView;
 
         if (ColorConverter.ConvertFromString(_cfg.AccentColor) is Color accent)
             Application.Current.Resources["AccentBrush"] = new SolidColorBrush(accent);
@@ -879,6 +882,7 @@ public partial class MainWindow : Window
         _activeIndex = Math.Clamp(index, 0, _cfg.Tabs.Count);
         RefreshTabs();
         RefreshGroups();
+        ListViewToggle.IsChecked = ActiveConfig.ListView; // 每个页签各自记忆视图模式
     }
 
     public void SelectLastTab() => SelectTab(_cfg.Tabs.Count);
@@ -1032,6 +1036,7 @@ public partial class MainWindow : Window
     {
         foreach (var g in ActiveConfig.Groups) g.RefreshItems();
         GroupsView.SetGroups(ActiveConfig.Groups);
+        GroupsView.SetViewMode(ActiveConfig.ListView);
         SyncWatchers();
     }
 
@@ -1105,15 +1110,25 @@ public partial class MainWindow : Window
     /// <summary>删除抽屉里的快捷方式 / 文件（移入回收站）。</summary>
     private void DeleteDrawerItem(ItemInfo it, GroupModel g)
     {
-        if (it.IsDirectory) return;
-        var confirm = MessageBox.Show(this, $"确定删除「{it.DisplayName}」？将移入回收站（磁盘文件夹不受影响）。",
-            "删除", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+        string confirmText = it.IsDirectory
+            ? $"确定删除文件夹「{it.DisplayName}」？其内容将一并移入回收站。"
+            : $"确定删除「{it.DisplayName}」？将移入回收站。";
+        var confirm = MessageBox.Show(this, confirmText, "删除", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirm != MessageBoxResult.OK) return;
         try
         {
-            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(it.Path,
-                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            if (it.IsDirectory)
+            {
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(it.Path,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
+            else
+            {
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(it.Path,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
             g.RefreshItems();
             ConfigService.Save();
         }
@@ -1123,21 +1138,21 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>把快捷方式 / 文件移动到另一个抽屉（同名自动加序号）。</summary>
+    /// <summary>把快捷方式 / 文件 / 文件夹移动到另一个抽屉（同名自动加序号）。</summary>
     private void MoveDrawerItem(ItemInfo it, GroupModel from, GroupModel to)
     {
-        if (it.IsDirectory) return;
         try
         {
             string dest = System.IO.Path.Combine(to.CurrentPath, it.Name);
             int i = 2;
-            while (File.Exists(dest))
+            while (it.IsDirectory ? Directory.Exists(dest) : File.Exists(dest))
             {
                 dest = System.IO.Path.Combine(to.CurrentPath,
                     $"{System.IO.Path.GetFileNameWithoutExtension(it.Name)} ({i}){System.IO.Path.GetExtension(it.Name)}");
                 i++;
             }
-            File.Move(it.Path, dest);
+            if (it.IsDirectory) Directory.Move(it.Path, dest);
+            else File.Move(it.Path, dest);
             from.RefreshItems();
             to.RefreshItems();
             ConfigService.Save();
@@ -1146,6 +1161,79 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(this, $"移动失败：{ex.Message}", "移动", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    /// <summary>头部按钮：切换 宫格 / 列表 视图（持久化到当前页签配置）。</summary>
+    private void ListView_Click(object sender, RoutedEventArgs e)
+    {
+        ActiveConfig.ListView = ListViewToggle.IsChecked == true;
+        GroupsView.SetViewMode(ActiveConfig.ListView);
+        ConfigService.Save();
+    }
+
+    /// <summary>重命名抽屉里的文件 / 文件夹（磁盘上直接改名，快捷方式保留扩展名）。</summary>
+    private void RenameDrawerItem(ItemInfo it, GroupModel g)
+    {
+        _suppressAutoHide = true;
+        try
+        {
+            var ext = System.IO.Path.GetExtension(it.Path); // 文件夹为空
+            string initial = ext.Length > 0 && it.Name.Length > ext.Length ? it.Name[..^ext.Length] : it.Name;
+            var dlg = new RenameDialog("重命名", it.IsDirectory ? "文件夹名称" : "文件名称", initial) { Owner = this };
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.Result)) return;
+
+            string newName = dlg.Result.Trim();
+            if (newName.Length == 0) return;
+            if (ext.Length > 0 && !newName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) newName += ext;
+            if (string.Equals(newName, it.Name, StringComparison.OrdinalIgnoreCase)) return;
+
+            string newPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(it.Path) ?? "", newName);
+            if (File.Exists(newPath) || Directory.Exists(newPath))
+            {
+                MessageBox.Show(this, $"已存在同名文件 / 文件夹：{newName}", "重命名失败",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                if (it.IsDirectory) Directory.Move(it.Path, newPath);
+                else File.Move(it.Path, newPath);
+            }
+            catch
+            {
+                MessageBox.Show(this, "重命名失败：文件可能被占用或无权限。", "重命名失败",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            // 同步手动排序里的旧名字
+            for (int i = 0; i < g.OrderOverride.Count; i++)
+                if (string.Equals(g.OrderOverride[i], it.Name, StringComparison.OrdinalIgnoreCase))
+                    g.OrderOverride[i] = newName;
+            g.RefreshItems();
+            ConfigService.Save();
+        }
+        finally { _suppressAutoHide = false; }
+    }
+
+    /// <summary>抽屉右键菜单排序：上移 / 下移 / 置顶 / 置底（当前页签的抽屉顺序，随配置持久化）。</summary>
+    private void MoveDrawer(GroupModel g, GroupsView.DrawerMove move)
+    {
+        var list = ActiveConfig.Groups;
+        int i = list.IndexOf(g);
+        if (i < 0) return;
+        list.RemoveAt(i);
+        int target = move switch
+        {
+            GroupsView.DrawerMove.Up => i - 1,
+            GroupsView.DrawerMove.Down => i + 1,
+            GroupsView.DrawerMove.Top => 0,
+            GroupsView.DrawerMove.Bottom => list.Count,
+            _ => i
+        };
+        target = Math.Clamp(target, 0, list.Count);
+        list.Insert(target, g);
+        RefreshGroups();
+        ConfigService.Save();
     }
 
     private void CreateSubfolder(GroupModel g)

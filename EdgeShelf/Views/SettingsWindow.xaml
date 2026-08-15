@@ -4,7 +4,7 @@
         Title="EdgeShelf 设置" Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         ShowInTaskbar="True" Topmost="True"
-        Background="#FF20242E" WindowStyle="None">
+        Background="#FF20242E" WindowStyle="None" Icon="pack://application:,,,/App.ico">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="30" ResizeBorderThickness="0" CornerRadius="0"
                       GlassFrameThickness="0" UseAeroCaptionButtons="False"/>

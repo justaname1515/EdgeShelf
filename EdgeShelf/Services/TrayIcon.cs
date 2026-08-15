@@ -23,7 +23,7 @@ public class TrayIcon : IDisposable
 
     public void Install()
     {
-        _icon = CreateIcon();
+        _icon = LoadAppIcon();
         _notify = new NotifyIcon
         {
             Text = "EdgeShelf 边缘收纳",
@@ -101,6 +101,23 @@ public class TrayIcon : IDisposable
         menu.Items.Add(new ToolStripMenuItem("退出", null, (_, _) => _onExit()));
 
         menu.ResumeLayout();
+    }
+
+    /// <summary>从嵌入资源加载应用图标（16×16 托盘尺寸），失败则回退为自绘图标。</summary>
+    private static Icon LoadAppIcon()
+    {
+        try
+        {
+            var info = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/App.ico"));
+            if (info == null) return CreateIcon();
+            using var stream = info.Stream;
+            using var ico = new Icon(stream);
+            return new Icon(ico, new Size(16, 16));
+        }
+        catch
+        {
+            return CreateIcon();
+        }
     }
 
     private static Icon CreateIcon()

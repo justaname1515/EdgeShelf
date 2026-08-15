@@ -16,6 +16,11 @@
                                     <MenuItem Header="在此新建子文件夹" Click="CtxNewSub_Click"/>
                                     <MenuItem Header="重命名分组" Click="CtxRename_Click"/>
                                     <Separator/>
+                                    <MenuItem Header="上移" Click="CtxMoveUp_Click"/>
+                                    <MenuItem Header="下移" Click="CtxMoveDown_Click"/>
+                                    <MenuItem Header="上移置顶" Click="CtxMoveTop_Click"/>
+                                    <MenuItem Header="下移置底" Click="CtxMoveBottom_Click"/>
+                                    <Separator/>
                                     <MenuItem Header="删除分组" Click="CtxDelete_Click"/>
                                 </ContextMenu>
                             </Border.ContextMenu>
@@ -43,10 +48,11 @@
                                     </Button>
                                 </Grid>
 
-                                <!-- 内容（可折叠） -->
+                                <!-- 内容（可折叠）：宫格视图 -->
                                 <StackPanel Margin="0,6,0,0"
                                             Visibility="{Binding IsCollapsed, Converter={StaticResource InverseBoolToVis}}">
                                     <ItemsControl ItemsSource="{Binding Items}"
+                                                  Visibility="{Binding ShowTiles, Converter={StaticResource BoolToVis}}"
                                                   PreviewMouseLeftButtonDown="Tiles_PreviewMouseLeftButtonDown"
                                                   PreviewMouseMove="Tiles_PreviewMouseMove"
                                                   PreviewMouseLeftButtonUp="Tiles_PreviewMouseLeftButtonUp"
@@ -63,6 +69,7 @@
                                                         ContextMenuOpening="Tile_ContextMenuOpening">
                                                     <Button.ContextMenu>
                                                         <ContextMenu>
+                                                            <MenuItem Header="重命名…" Click="RenameItem_Click"/>
                                                             <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
                                                             <Separator/>
                                                             <MenuItem Header="删除（移入回收站）" Click="DeleteItem_Click"/>
@@ -78,6 +85,42 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+
+                                    <!-- 内容（可折叠）：列表视图（图标 + 名称竖排，文件夹点击内联展开） -->
+                                    <ItemsControl ItemsSource="{Binding ListRows}"
+                                                  Visibility="{Binding ShowList, Converter={StaticResource BoolToVis}}"
+                                                  PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                                                  PreviewMouseMove="List_PreviewMouseMove"
+                                                  PreviewMouseLeftButtonUp="List_PreviewMouseLeftButtonUp"
+                                                  ToolTip="按住顶层行拖动可手动排序">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="{Binding Indent}" Height="30" Cursor="Hand"
+                                                      MouseLeftButtonUp="ListRow_MouseLeftButtonUp"
+                                                      ContextMenuOpening="Tile_ContextMenuOpening"
+                                                      ToolTip="{Binding Item.Path}">
+                                                    <Grid.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="重命名…" Click="RenameItem_Click"/>
+                                                            <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="删除（移入回收站）" Click="DeleteItem_Click"/>
+                                                        </ContextMenu>
+                                                    </Grid.ContextMenu>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="26"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Image Grid.Column="0" Source="{Binding Item.Icon}" Width="18" Height="18"
+                                                           Stretch="Uniform" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Item.DisplayName}" FontSize="11.5"
+                                                               Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
                                     <TextBlock Text="无匹配" FontSize="11" Foreground="{DynamicResource SubTextBrush}"
                                                Margin="0,6,0,0"
                                                Visibility="{Binding SearchNoMatch, Converter={StaticResource BoolToVis}}"/>

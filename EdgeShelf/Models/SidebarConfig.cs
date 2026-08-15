@@ -37,6 +37,9 @@ public class SidebarConfig
     public DockCorner Corner { get; set; } = DockCorner.None;
     public DockMode Mode { get; set; } = DockMode.Normal;
 
+    /// <summary>内容视图：false=宫格（瓦片），true=列表（图标 + 名称竖排，文件夹内联展开）。</summary>
+    public bool ListView { get; set; }
+
     /// <summary>沿边缘的偏移（DIPs）；-1 表示居中。</summary>
     public double EdgeOffset { get; set; } = -1;
 
