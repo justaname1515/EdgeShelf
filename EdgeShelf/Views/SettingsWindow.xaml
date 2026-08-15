@@ -63,7 +63,8 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="EdgeShelf 设置" FontWeight="SemiBold" FontSize="13"
                            Foreground="#E8FFFFFF" VerticalAlignment="Center"/>
-                <Button Grid.Column="1" Width="28" Height="24" Click="TitleClose_Click"
+                <Button Grid.Column="1" Width="30" Height="26" Click="TitleClose_Click"
+                        WindowChrome.IsHitTestVisibleInChrome="True"
                         Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="关闭"
                         Foreground="#DDFFFFFF" VerticalAlignment="Center">
                     <Button.Template>
