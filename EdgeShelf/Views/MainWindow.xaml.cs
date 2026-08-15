@@ -412,6 +412,13 @@ public partial class MainWindow : Window
         ApplyEdgeLayout();
         ReapplyEffect();
         PlaceWindow();
+
+        // 从透明/无痕（隐藏态）切回正常：立即恢复显示窗口
+        if (_cfg.Mode == DockMode.Normal && !IsVisible && _hwndSource != null)
+        {
+            Show();
+            PlaceWindow();
+        }
     }
 
     private void ReapplyEffect()
@@ -443,6 +450,16 @@ public partial class MainWindow : Window
     private void AnimateTo(bool open)
     {
         _open = open;
+
+        // 透明 / 无痕：窗口平时隐藏（避免分层窗口黑块）。打开前先以当前（关闭态）尺寸显示，
+        // 让滑出动画完整可见；收起动画结束后再隐藏，避免"突然消失/蹦出来"
+        bool autoHidden = _cfg.Mode != DockMode.Normal;
+        if (autoHidden && open && !IsVisible)
+        {
+            Show();
+            BringToFront();
+        }
+
         double crossDip = open ? OpenCrossDip : ClosedCrossDip;
         double dur = open ? 230 : 190;
         var ease = new CubicEase { EasingMode = open ? EasingMode.EaseOut : EasingMode.EaseIn };
@@ -469,6 +486,18 @@ public partial class MainWindow : Window
         var fade = new DoubleAnimation(open ? 1 : 0, TimeSpan.FromMilliseconds(open ? 170 : 120));
         Panel.BeginAnimation(OpacityProperty, fade);
 
+        if (!open && autoHidden && IsVisible)
+        {
+            // 等收起动画（几何 190ms + 淡出 120ms）全部结束再隐藏窗口
+            var hideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(dur + 40) };
+            hideTimer.Tick += (_, _) =>
+            {
+                hideTimer.Stop();
+                if (!_open && _cfg.Mode != DockMode.Normal && IsVisible) Hide();
+            };
+            hideTimer.Start();
+        }
+
         if (open) BringToFront();
     }
 
@@ -485,15 +514,17 @@ public partial class MainWindow : Window
         if (_closing) return;
         try
         {
-            // 透明 / 无痕：面板关闭时整个窗口隐藏（不占分层表面 → 物理上不会与浏览器/资源管理器
-            // 的硬件合成内容冲突出黑块）；边缘触发靠鼠标轮询，不依赖窗口可见
+            // 透明 / 无痕：窗口显隐由 AnimateTo 负责（保证动画完整），这里只做兜底
             bool autoHidden = _cfg.Mode != DockMode.Normal;
             if (autoHidden)
             {
-                if (_open && !IsVisible) { Show(); PlaceWindow(); }
-                else if (!_open && IsVisible) Hide();
+                if (_open && !IsVisible) Show();
             }
-            else if (!IsVisible) return; // 正常模式蓝条常驻，窗口必须可见
+            else if (!IsVisible)
+            {
+                Show(); // 从透明/无痕（隐藏态）切回正常：恢复显示
+                PlaceWindow();
+            }
 
             var m = TargetMonitor();
             bool monitorChanged = _target == null || _target.Handle != m.Handle;
@@ -1428,6 +1459,7 @@ public partial class MainWindow : Window
         {
             _cfg.Pinned = false; // 透明 / 无痕不固定，避免"固定但碰不到"
             if (mode == DockMode.Stealth && _open) AnimateTo(false); // 无痕：自动隐藏，不再被鼠标唤起
+            else if (!_open && IsVisible) Hide(); // 面板本就关闭：立即隐藏窗口，避免透明分层表面常驻（黑块风险）
         }
         ConfigService.Save();
         ApplyConfig();
