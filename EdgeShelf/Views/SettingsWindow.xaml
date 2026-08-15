@@ -4,8 +4,59 @@
         Title="EdgeShelf 设置" Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         ShowInTaskbar="True" Topmost="True"
-        Background="#FF20242E" WindowStyle="ToolWindow">
-    <StackPanel Margin="18,14,18,16">
+        Background="#FF20242E" WindowStyle="None">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30" ResizeBorderThickness="0" CornerRadius="0"
+                      GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <!-- 深色滑块样式（水平） -->
+        <Style TargetType="Slider">
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid VerticalAlignment="Center" Background="Transparent">
+                            <Track x:Name="PART_Track" Orientation="Horizontal">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="{DynamicResource AccentBrush}" Height="4"
+                                                        CornerRadius="2" VerticalAlignment="Center"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="#FF3A4150" Height="4"
+                                                        CornerRadius="2" VerticalAlignment="Center"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Width="14" Height="14" Fill="{DynamicResource AccentBrush}"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Border BorderBrush="Black" BorderThickness="1" Background="#FF20242E">
+        <StackPanel Margin="18,8,18,16">
+            <TextBlock Text="EdgeShelf 设置" FontWeight="SemiBold" FontSize="13" Foreground="#E8FFFFFF" Margin="0,0,0,8"/>
 
         <TextBlock Text="侧边栏" FontWeight="SemiBold" FontSize="13" Foreground="#E8FFFFFF"/>
 
@@ -127,6 +178,25 @@
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
+            <TextBlock Text="模式" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <RadioButton x:Name="ModeNormalRadio" Content="普（正常）" GroupName="ModeGroup"
+                             Foreground="#CCFFFFFF" FontSize="12.5"
+                             ToolTip="正常模式：蓝条可见、可拖动，边缘接近触发"/>
+                <RadioButton x:Name="ModeTransparentRadio" Content="透（透明）" GroupName="ModeGroup" Margin="14,0,0,0"
+                             Foreground="#CCFFFFFF" FontSize="12.5"
+                             ToolTip="透明模式：蓝条不可见不可触碰（鼠标掠过），边缘接近仍触发"/>
+                <RadioButton x:Name="ModeStealthRadio" Content="无（无痕）" GroupName="ModeGroup" Margin="14,0,0,0"
+                             Foreground="#CCFFFFFF" FontSize="12.5"
+                             ToolTip="无痕模式：蓝条不可见不可触碰，边缘触发关闭，只能托盘 / 快捷键恢复"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <TextBlock Text="主题色" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
             <WrapPanel x:Name="AccentPanel" Grid.Column="1"/>
         </Grid>
@@ -169,5 +239,6 @@
             <Button Content="保存" Width="76" Height="30" Click="Save_Click" IsDefault="True"
                     Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
         </StackPanel>
-    </StackPanel>
+        </StackPanel>
+    </Border>
 </Window>

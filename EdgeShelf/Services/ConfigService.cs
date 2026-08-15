@@ -56,6 +56,19 @@ public static class ConfigService
             Config.Sidebars.Add(new SidebarConfig { Name = "侧边栏 1" });
         }
 
+        // 迁移：旧版“透”主题色（#00000000）→ 透明模式（主题色恢复默认），透明改由“模式”表达
+        bool accentMigrated = false;
+        foreach (var sb in Config.Sidebars)
+        {
+            if (sb.AccentColor == "#00000000")
+            {
+                sb.AccentColor = "#FF4C8DFF";
+                sb.Mode = DockMode.Transparent;
+                accentMigrated = true;
+            }
+        }
+        if (accentMigrated) SaveNow();
+
         Config.AutoStart = GetAutoStart();
     }
 

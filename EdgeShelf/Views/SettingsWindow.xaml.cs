@@ -67,6 +67,9 @@ public partial class SettingsWindow : Window
         _hkKey = ConfigService.Config.HotkeyKey;
         HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
         _accent = _cfg.AccentColor;
+        ModeNormalRadio.IsChecked = _cfg.Mode == DockMode.Normal;
+        ModeTransparentRadio.IsChecked = _cfg.Mode == DockMode.Transparent;
+        ModeStealthRadio.IsChecked = _cfg.Mode == DockMode.Stealth;
 
         foreach (var preset in AccentPresets)
         {
@@ -85,30 +88,6 @@ public partial class SettingsWindow : Window
             btn.Click += Accent_Click;
             AccentPanel.Children.Add(btn);
         }
-
-        // 透明配色：窄条隐形（边缘悬停/点击仍然可用）
-        var transparentBtn = new Button
-        {
-            Width = 24,
-            Height = 24,
-            Margin = new Thickness(0, 0, 6, 0),
-            Tag = "#00000000",
-            Content = new TextBlock
-            {
-                Text = "透",
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            },
-            Background = new SolidColorBrush(Color.FromArgb(0, 255, 255, 255)),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
-            Cursor = System.Windows.Input.Cursors.Hand,
-            ToolTip = "透明（窄条隐形，鼠标移到边缘仍可弹出）"
-        };
-        transparentBtn.Click += Accent_Click;
-        AccentPanel.Children.Add(transparentBtn);
 
         UpdateLabels();
         _loading = false;
@@ -321,6 +300,9 @@ public partial class SettingsWindow : Window
         _cfg.EdgeTriggerFullSpan = FullSpanCheck.IsChecked == true;
         _cfg.FollowMouseMonitor = FollowMouseCheck.IsChecked == true;
         _cfg.MonitorIndex = Math.Max(0, MonitorCombo.SelectedIndex);
+        _cfg.Mode = ModeTransparentRadio.IsChecked == true ? DockMode.Transparent
+                  : ModeStealthRadio.IsChecked == true ? DockMode.Stealth
+                  : DockMode.Normal;
         _cfg.AccentColor = _accent;
         ConfigService.Config.AutoStart = AutoStartCheck.IsChecked == true;
         ConfigService.SetAutoStart(ConfigService.Config.AutoStart);
@@ -331,6 +313,7 @@ public partial class SettingsWindow : Window
 
         _main.ApplyConfig();
         _main.RefreshGroups();
+        _main.Tray?.Refresh(); // 托盘菜单的模式勾选随设置同步
         _main.RequestHotkeyReapply();
         Close();
     }
