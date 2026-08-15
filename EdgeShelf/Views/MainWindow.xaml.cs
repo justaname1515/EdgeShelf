@@ -399,11 +399,13 @@ public partial class MainWindow : Window
         byte alpha = (byte)Math.Round(Math.Clamp(_cfg.Opacity, 0.0, 1.0) * 235);
         Application.Current.Resources["PanelBrush"] = new SolidColorBrush(Color.FromArgb(alpha, 0x14, 0x1A, 0x24));
 
-        // 模式：透明 / 无痕时窄条不画任何颜色（null 画笔 = 完全无渲染，避免透明色在分层窗口上呈黑块）
+        // 模式：透明 / 无痕时窄条不可见
+        // 注意：必须用 Brushes.Transparent（alpha=0 的透明画笔）显式清空该区域——
+        // 用 null 画笔会让分层窗口表面留下未绘制的区域，渲染成黑块
         bool barVisible = _cfg.Mode == DockMode.Normal;
         var barBrush = (Brush)Application.Current.Resources["AccentBrush"];
-        Tab.Background = barVisible ? barBrush : null;
-        TabH.Background = barVisible ? barBrush : null;
+        Tab.Background = barVisible ? barBrush : Brushes.Transparent;
+        TabH.Background = barVisible ? barBrush : Brushes.Transparent;
         TabArrow.Visibility = barVisible ? Visibility.Visible : Visibility.Collapsed;
 
         PinButton.IsChecked = _cfg.Pinned;
@@ -480,9 +482,19 @@ public partial class MainWindow : Window
 
     private void PollTick(object? sender, EventArgs e)
     {
-        if (_closing || !IsVisible) return;
+        if (_closing) return;
         try
         {
+            // 透明 / 无痕：面板关闭时整个窗口隐藏（不占分层表面 → 物理上不会与浏览器/资源管理器
+            // 的硬件合成内容冲突出黑块）；边缘触发靠鼠标轮询，不依赖窗口可见
+            bool autoHidden = _cfg.Mode != DockMode.Normal;
+            if (autoHidden)
+            {
+                if (_open && !IsVisible) { Show(); PlaceWindow(); }
+                else if (!_open && IsVisible) Hide();
+            }
+            else if (!IsVisible) return; // 正常模式蓝条常驻，窗口必须可见
+
             var m = TargetMonitor();
             bool monitorChanged = _target == null || _target.Handle != m.Handle;
             if (monitorChanged)

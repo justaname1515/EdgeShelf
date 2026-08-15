@@ -55,6 +55,14 @@ public partial class App : Application
 
         ConfigService.Load();
 
+        // 启动默认正常模式：透明 / 无痕启动时蓝条不可见、贴边也不弹，容易误以为没打开。
+        // 每次启动都回到正常模式（不写回配置，会话内切换模式仍会保存）
+        foreach (var sb in ConfigService.Config.Sidebars)
+        {
+            sb.Mode = DockMode.Normal;
+            foreach (var t in sb.Tabs) t.Mode = DockMode.Normal;
+        }
+
         // 自启自愈：若已启用自启动，用当前 exe 路径刷新注册表与启动文件夹，防止路径失效
         if (ConfigService.Config.AutoStart) ConfigService.SetAutoStart(true);
 
