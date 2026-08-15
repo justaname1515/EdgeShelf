@@ -279,6 +279,12 @@ public partial class SettingsWindow : Window
         return string.Join(" + ", parts);
     }
 
+    /// <summary>标题栏 ✕ 关闭按钮。</summary>
+    private void TitleClose_Click(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>取消：不保存直接关闭（显式 Close，避免非模态窗口 IsCancel 不生效）。</summary>
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         _cfg.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? "侧边栏" : NameBox.Text.Trim();
