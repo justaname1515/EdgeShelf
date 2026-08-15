@@ -399,11 +399,11 @@ public partial class MainWindow : Window
         byte alpha = (byte)Math.Round(Math.Clamp(_cfg.Opacity, 0.0, 1.0) * 235);
         Application.Current.Resources["PanelBrush"] = new SolidColorBrush(Color.FromArgb(alpha, 0x14, 0x1A, 0x24));
 
-        // 模式：透明 / 无痕时窄条不可见
+        // 模式：透明 / 无痕时窄条不画任何颜色（null 画笔 = 完全无渲染，避免透明色在分层窗口上呈黑块）
         bool barVisible = _cfg.Mode == DockMode.Normal;
         var barBrush = (Brush)Application.Current.Resources["AccentBrush"];
-        Tab.Background = barVisible ? barBrush : Brushes.Transparent;
-        TabH.Background = barVisible ? barBrush : Brushes.Transparent;
+        Tab.Background = barVisible ? barBrush : null;
+        TabH.Background = barVisible ? barBrush : null;
         TabArrow.Visibility = barVisible ? Visibility.Visible : Visibility.Collapsed;
 
         PinButton.IsChecked = _cfg.Pinned;
@@ -1301,6 +1301,9 @@ public partial class MainWindow : Window
     }
 
     private int CopyShortcuts(IEnumerable<string> files)
+        => CopyShortcutsTo(files, ConfigService.Config.ShortcutFolder);
+
+    private static int CopyShortcutsTo(IEnumerable<string> files, string destFolder)
     {
         int n = 0;
         foreach (var f in files)
@@ -1308,11 +1311,11 @@ public partial class MainWindow : Window
             try
             {
                 string name = Path.GetFileName(f);
-                string dest = Path.Combine(ConfigService.Config.ShortcutFolder, name);
+                string dest = Path.Combine(destFolder, name);
                 int i = 2;
                 while (File.Exists(dest))
                 {
-                    dest = Path.Combine(ConfigService.Config.ShortcutFolder,
+                    dest = Path.Combine(destFolder,
                         $"{Path.GetFileNameWithoutExtension(name)} ({i}){Path.GetExtension(name)}");
                     i++;
                 }
@@ -1567,22 +1570,32 @@ public partial class MainWindow : Window
                     shortcuts.Add(p);
             }
 
-            foreach (var p in folders)
+            // 拖到某个抽屉卡片上：快捷方式直接复制进该抽屉的文件夹（不再弹选择文件夹框）
+            if (shortcuts.Count > 0 && FindGroupAt(e.OriginalSource) is GroupModel target
+                && Directory.Exists(target.CurrentPath))
             {
-                if (ActiveConfig.Groups.Any(g => string.Equals(g.Path, p, StringComparison.OrdinalIgnoreCase)))
-                    continue;
-                ActiveConfig.Groups.Add(new GroupModel
-                {
-                    Name = Path.GetFileName(p.TrimEnd('\\')),
-                    Path = p
-                });
-                added++;
+                added += CopyShortcutsTo(shortcuts, target.CurrentPath);
+                target.RefreshItems();
             }
-
-            if (shortcuts.Count > 0 && EnsureShortcutFolder())
+            else
             {
-                added += CopyShortcuts(shortcuts);
-                EnsureShortcutGroup();
+                foreach (var p in folders)
+                {
+                    if (ActiveConfig.Groups.Any(g => string.Equals(g.Path, p, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+                    ActiveConfig.Groups.Add(new GroupModel
+                    {
+                        Name = Path.GetFileName(p.TrimEnd('\\')),
+                        Path = p
+                    });
+                    added++;
+                }
+
+                if (shortcuts.Count > 0 && EnsureShortcutFolder())
+                {
+                    added += CopyShortcuts(shortcuts);
+                    EnsureShortcutGroup();
+                }
             }
 
             if (added > 0)
@@ -1592,6 +1605,18 @@ public partial class MainWindow : Window
             }
         }
         finally { _suppressAutoHide = false; }
+    }
+
+    /// <summary>从拖放事件的原始元素向上找到命中抽屉的 GroupModel。</summary>
+    private static GroupModel? FindGroupAt(object? originalSource)
+    {
+        var el = originalSource as DependencyObject;
+        while (el != null)
+        {
+            if (el is FrameworkElement fe && fe.DataContext is GroupModel g) return g;
+            el = VisualTreeHelper.GetParent(el);
+        }
+        return null;
     }
 
     // ---------------- 窗口生命周期 ----------------
