@@ -313,7 +313,9 @@
                 <TabItem Header="主题配置">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,12,0,0">
-                        <Grid Margin="0,0,0,10">
+                        <CheckBox x:Name="ThemeShareAllCheck" Content="所有侧边栏共用同一套配色（全局主题）"
+                                  Foreground="#CCFFFFFF" FontSize="12.5" Checked="ThemeShareAll_Changed" Unchecked="ThemeShareAll_Changed"/>
+                        <Grid Margin="0,8,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90"/>
                                 <ColumnDefinition Width="*"/>

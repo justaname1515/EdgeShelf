@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-beta1.11.0-4c8dff)
+![Version](https://img.shields.io/badge/version-beta1.11.1-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 屏幕边缘一条窄窄的蓝色标签，鼠标移过去滑出一块收纳面板——把文件夹、快捷方式、常用文件统统收进边缘，桌面始终保持干净。
@@ -11,7 +11,7 @@
 **EdgeShelf** 是一款 Windows 10 / 11 的**桌面边缘收纳工具**，灵感来自旧版 QQ 侧边条：它不替换你的桌面，不动壁纸、不接管桌面图标，只在屏幕边缘停靠一条约 10px 的蓝色标签，鼠标靠近即自动滑出收纳面板。面板里是一个个「抽屉」——每个抽屉对应磁盘上的一个文件夹，展开即可看到里面的子文件夹、快捷方式和文件图标，点击直接打开。
 
 - ✅ **不碰桌面**：桌面图标、壁纸、桌面右键菜单全部原样保留
-- ✅ **原生轻量**：C# / WPF 原生实现，单进程常驻托盘，内存约 20–40 MB，单文件免安装
+- ✅ **原生轻量**：C# / WPF 原生实现，单进程常驻托盘；内置.NET 8版内存占用实测约 100–150 MB（.NET 8 运行时 + WPF 的正常水平，与抽屉数量关系不大）；介意内存可用无内置版`EdgeShelf-net8.exe`（与系统共享 .NET 运行时），占用约40MB左右
 - ✅ **收纳即引用**：只「显示」磁盘上的文件夹，不复制、不移动、不删除你的任何文件
 - ✅ **多侧边栏 / 页签 / 多显示器**：一条不够就加一条，还能合并页签共用面板
 
@@ -124,7 +124,7 @@
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），**无需安装 .NET**，双击即用 |
 | **`EdgeShelf-net8.exe`** | 框架依赖单文件（约 0.5 MB），**需安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)**，体积极小 |
-| **`EdgeShelf-beta1.11.0-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
+| **`EdgeShelf-beta1.11.1-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
 
 > 源码不用单独下载：GitHub 会从 tag 自动生成 Source code (zip/tar.gz)。
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。若设置了开机自启，覆盖后建议重启一次软件以自愈自启路径。
@@ -193,7 +193,7 @@ cd Release-EdgeShelf
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序（内置 .NET 8）
 ├── EdgeShelf-net8.exe           框架依赖单文件（需安装 .NET 8 Desktop Runtime）
-├── EdgeShelf-beta1.11.0-win-x64.zip  便携压缩包（含自包含 exe）
+├── EdgeShelf-beta1.11.1-win-x64.zip  便携压缩包（含自包含 exe）
 ├── Shelf E black.ico            应用图标源文件
 ├── README.md
 ├── build.ps1                    构建脚本
@@ -248,6 +248,12 @@ EdgeShelf 托盘图标是黑色调（Shelf E black），在任务栏右下角向
 ---
 
 ## 📝 更新日志
+
+### beta1.11.1
+- **所有侧边栏共用配色**：主题页新增勾选「所有侧边栏共用同一套配色」——勾选后主题改动一次应用到全部侧边栏（含合并页签）
+- **修复快捷键固定 → 正常循环**：固定状态下切回正常现在会真正解除固定，循环不再卡住
+- **主题恢复默认配色**：主题页新增一键「恢复默认配色」（无主题 / 默认蓝 / 夜晚 / 不透过）
+- **主题稳定性**：云母 / Aero 不再使用分层窗口上的系统效果（会闪烁、出棕色缝隙条），改由纯配色 + 半透明实现；「面板透过」勾选 = 半透明、不勾选 = 纯色，所有主题一致
 
 ### beta1.11.0
 - **设置分页**：设置窗口改为三页——**整体配置**（自启、快捷键、模式循环）/ **侧边栏配置** / **主题配置**；侧边栏与主题页都带侧边栏选择器，可分别配置任意一个侧边栏（含合并页签）

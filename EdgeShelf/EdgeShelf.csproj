@@ -11,7 +11,7 @@
     <AssemblyName>EdgeShelf</AssemblyName>
     <RootNamespace>EdgeShelf</RootNamespace>
     <ApplicationIcon>App.ico</ApplicationIcon>
-    <Version>1.11.0</Version>
+    <Version>1.11.1</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 

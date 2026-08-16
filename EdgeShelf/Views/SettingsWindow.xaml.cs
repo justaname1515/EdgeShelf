@@ -56,7 +56,16 @@ public partial class SettingsWindow : Window
     }
 
     private SidebarConfig SidebarTarget => _all[Math.Max(0, SidebarCombo.SelectedIndex)].Cfg;
-    private SidebarConfig ThemeTarget => _all[Math.Max(0, ThemeSidebarCombo.SelectedIndex)].Cfg;
+
+    /// <summary>主题编辑目标：勾选「共用配色」时以第一个侧边栏为参考，改动将应用到所有侧边栏。</summary>
+    private SidebarConfig ThemeTarget
+    {
+        get
+        {
+            if (ConfigService.Config.ThemeShareAll) return _all.Count > 0 ? _all[0].Cfg : SidebarTarget;
+            return _all[Math.Max(0, ThemeSidebarCombo.SelectedIndex)].Cfg;
+        }
+    }
 
     private static DockEdge EffectiveEdgeOf(SidebarConfig cfg)
         => cfg.Corner != DockCorner.None
@@ -77,6 +86,8 @@ public partial class SettingsWindow : Window
         CycleTransparentCheck.IsChecked = g.CycleTransparent;
         CycleStealthCheck.IsChecked = g.CycleStealth;
         CyclePinnedCheck.IsChecked = g.CyclePinned;
+        ThemeShareAllCheck.IsChecked = g.ThemeShareAll;
+        ThemeSidebarCombo.IsEnabled = !g.ThemeShareAll;
     }
 
     private void LoadSidebarTab()
@@ -184,6 +195,15 @@ public partial class SettingsWindow : Window
     private void ThemeSidebarCombo_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_loading && ThemeSidebarCombo.SelectedIndex >= 0) LoadThemeTab();
+    }
+
+    /// <summary>共用配色开关：勾选后主题页以第一个侧边栏为参考、保存时应用到所有侧边栏。</summary>
+    private void ThemeShareAll_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        ConfigService.Config.ThemeShareAll = ThemeShareAllCheck.IsChecked == true;
+        ThemeSidebarCombo.IsEnabled = ThemeShareAllCheck.IsChecked != true;
+        LoadThemeTab();
     }
 
     private void BarColor_Click(object sender, RoutedEventArgs e)
@@ -429,24 +449,36 @@ public partial class SettingsWindow : Window
                 : DockMode.Normal;
 
         // ---- 主题配置 ----
+        bool share = ThemeShareAllCheck.IsChecked == true;
         var th = ThemeTarget;
         th.WindowTheme = (WindowTheme)Math.Clamp(ThemeCombo.SelectedIndex, 0, 5);
         th.DayNight = DayNightCombo.SelectedIndex == 1 ? DayNight.Day : DayNight.Night;
         th.PanelTranslucent = PanelTranslucentCheck.IsChecked == true;
         th.AccentColor = _barColor;
         th.PanelColor = _panelColor;
+        if (share)
+        {
+            // 共用配色：把主题应用到所有侧边栏（含合并页签）
+            foreach (var (_, c) in _all)
+            {
+                c.WindowTheme = th.WindowTheme;
+                c.DayNight = th.DayNight;
+                c.PanelTranslucent = th.PanelTranslucent;
+                c.AccentColor = th.AccentColor;
+                c.PanelColor = th.PanelColor;
+            }
+        }
 
         ConfigService.Save();
 
-        // 应用到相关窗口（顶层侧边栏直接应用；页签由宿主在切换页签时应用）
+        // 应用到相关窗口（顶层侧边栏直接应用；页签由宿主在切换页签时应用；共用配色时全部应用）
         foreach (var w in MainWindow.Instances)
         {
-            if (ReferenceEquals(w.SidebarConfig, sb) || ReferenceEquals(w.SidebarConfig, th) ||
-                ReferenceEquals(w.ActiveConfig, sb) || ReferenceEquals(w.ActiveConfig, th) ||
-                w.SidebarConfig.Tabs.Contains(sb) || w.SidebarConfig.Tabs.Contains(th))
-            {
-                w.ApplyConfig();
-            }
+            bool affected = share
+                || ReferenceEquals(w.SidebarConfig, sb) || ReferenceEquals(w.SidebarConfig, th)
+                || ReferenceEquals(w.ActiveConfig, sb) || ReferenceEquals(w.ActiveConfig, th)
+                || w.SidebarConfig.Tabs.Contains(sb) || w.SidebarConfig.Tabs.Contains(th);
+            if (affected) w.ApplyConfig();
         }
 
         _main.RefreshGroups();

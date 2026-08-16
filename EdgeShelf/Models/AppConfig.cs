@@ -18,6 +18,9 @@ public class AppConfig
     public bool CycleStealth { get; set; } = true;
     public bool CyclePinned { get; set; } = true;
 
+    /// <summary>所有侧边栏共用同一套主题配色（全局主题）。</summary>
+    public bool ThemeShareAll { get; set; }
+
     // ---- 以下为旧版单侧边栏字段，仅用于迁移 ----
     public DockEdge Edge { get; set; }
     public bool FollowMouseMonitor { get; set; } = true;
