@@ -37,9 +37,21 @@ public partial class App : Application
         _mutex = new Mutex(true, "EdgeShelf.SingleInstance", out bool createdNew);
         if (!createdNew)
         {
-            // 已有实例在运行，直接退出
-            Shutdown();
-            return;
+            // 互斥体已存在：可能是另一实例在运行，也可能是被强杀遗留的 abandoned 状态。
+            // WaitOne(0) 拿到所有权 = 之前的实例已退出/被强杀，我们接管并继续启动；
+            // 拿不到 = 有实例正在运行，退出。
+            try
+            {
+                if (!_mutex.WaitOne(0))
+                {
+                    Shutdown();
+                    return;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // 前一个实例异常退出，互斥体被放弃：当前实例已获得所有权，继续启动
+            }
         }
 
         DispatcherUnhandledException += (_, args) =>
@@ -63,9 +75,6 @@ public partial class App : Application
             foreach (var t in sb.Tabs) t.Mode = DockMode.Normal;
         }
 
-        // 自启自愈：若已启用自启动，用当前 exe 路径刷新注册表与启动文件夹，防止路径失效
-        if (ConfigService.Config.AutoStart) ConfigService.SetAutoStart(true);
-
         // 启动日志：确认应用是否真的被启动（开机自启诊断用）
         try
         {
@@ -75,6 +84,12 @@ public partial class App : Application
         }
         catch { }
 
+        // 自启自愈：后台执行——schtasks / WScript.Shell 可能慢或卡住，绝不能阻塞启动
+        if (ConfigService.Config.AutoStart)
+        {
+            System.Threading.Tasks.Task.Run(() => ConfigService.SetAutoStart(true));
+        }
+
         foreach (var cfg in ConfigService.Config.Sidebars)
         {
             var w = CreateWindow(cfg);
@@ -82,7 +97,7 @@ public partial class App : Application
         }
 
         _tray = new TrayIcon(() => _windows,
-            () => { if (_windows.Count > 0) _windows[0].AddTab(); },
+            PromptNewSidebar,
             RequestExit);
         _tray.Install();
         foreach (var w in _windows) w.Tray = _tray;
@@ -98,7 +113,7 @@ public partial class App : Application
     {
         var w = new MainWindow(cfg);
         _windows.Add(w);
-        w.NewSidebarRequested += () => w.AddTab();
+        w.NewSidebarRequested += () => PromptNewSidebar();
         w.DeleteSidebarRequested += () => RemoveSidebar(w);
         w.MergeRequested += target => MergeSidebars(w, target);
         w.UnmergeRequested += tab => UnmergeTab(w, tab);
@@ -108,15 +123,45 @@ public partial class App : Application
         return w;
     }
 
-    /// <summary>全局快捷键：固定 ⇄ 无痕（对所有侧边栏生效）。</summary>
+    /// <summary>全局快捷键：按序循环切换已勾选模式（普→透→无→固，对所有侧边栏生效）。</summary>
     private void OnGlobalHotkey()
     {
-        bool anyPinned = _windows.Any(w => w.SidebarConfig.Pinned);
-        foreach (var w in _windows)
+        foreach (var w in _windows) w.AdvanceMode();
+    }
+
+    /// <summary>新建侧边栏：让用户选择 独立建立 或 作为页签加入现有侧边栏。</summary>
+    private void PromptNewSidebar()
+    {
+        var dlg = new NewSidebarDialog(ConfigService.Config.Sidebars) { Owner = _windows.Count > 0 ? _windows[0] : null };
+        if (dlg.ShowDialog() != true) return;
+
+        if (dlg.AsTab && dlg.Target != null)
         {
-            if (anyPinned) w.SetMode(DockMode.Stealth);
-            else w.SetPinned(true);
+            dlg.Target.Tabs.Add(new SidebarConfig { Name = NextSidebarName(dlg.Target.Tabs.Select(t => t.Name)) });
+            var host = _windows.FirstOrDefault(w => ReferenceEquals(w.SidebarConfig, dlg.Target));
+            if (host != null)
+            {
+                host.RefreshTabs();
+                host.SelectLastTab();
+            }
         }
+        else
+        {
+            var sb = new SidebarConfig { Name = NextSidebarName(ConfigService.Config.Sidebars.Select(s => s.Name)) };
+            ConfigService.Config.Sidebars.Add(sb);
+            var w = CreateWindow(sb);
+            w.Show();
+            w.Tray = _tray;
+        }
+        ConfigService.Save();
+        _tray?.Refresh();
+    }
+
+    private static string NextSidebarName(IEnumerable<string> existing)
+    {
+        int n = 1;
+        while (existing.Any(x => string.Equals(x, $"侧边栏 {n}", StringComparison.Ordinal))) n++;
+        return $"侧边栏 {n}";
     }
 
     /// <summary>根据配置注册/注销全局快捷键（注册在第一个窗口上）。</summary>

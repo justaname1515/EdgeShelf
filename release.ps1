@@ -1,7 +1,8 @@
-# EdgeShelf release packaging script
+# EdgeShelf release packaging script (ASCII-only; PS 5.1 cannot parse UTF-8 Chinese comments)
 # Usage:
-#   .\release.ps1 -Version 1.5.0
-# Steps: bump version in csproj -> publish single-file exe -> create win-x64 zip + source zip
+#   .\release.ps1 -Version 1.11.0
+# Steps: bump version -> publish self-contained exe + framework-dependent exe -> create win-x64 zip
+# Source code is NOT zipped: GitHub auto-packs source archives from tags.
 # Then (manually): git commit & push, gh release create (command printed at the end).
 
 param(
@@ -26,8 +27,8 @@ $csproj = $csproj -replace '<Version>[\d.]+</Version>', "<Version>$Version</Vers
 Set-Content $proj $csproj -Encoding UTF8
 Write-Host "==> Version bumped to $Version" -ForegroundColor Cyan
 
-# 2. publish self-contained single-file exe
-Write-Host "==> Publishing (needs network for runtime pack on first run) ..." -ForegroundColor Cyan
+# 2. publish self-contained single-file exe (bundles .NET 8, no install needed)
+Write-Host "==> Publishing self-contained exe ..." -ForegroundColor Cyan
 dotnet publish $proj -c Release -r win-x64 --self-contained true `
     --configfile $nugetConfig `
     -p:PublishSingleFile=true `
@@ -35,32 +36,31 @@ dotnet publish $proj -c Release -r win-x64 --self-contained true `
     -p:EnableCompressionInSingleFile=true `
     -o (Join-Path $PSScriptRoot 'publish\win-x64')
 
-# 3. copy exe + create win-x64 zip（beta 命名：EdgeShelf-betaX.Y.Z-*）
-$exe = Join-Path $PSScriptRoot 'EdgeShelf.exe'
-Copy-Item (Join-Path $PSScriptRoot 'publish\win-x64\EdgeShelf.exe') $exe -Force
-$winZip = Join-Path $PSScriptRoot "EdgeShelf-beta$Version-win-x64.zip"
-$srcZip = Join-Path $PSScriptRoot "EdgeShelf-beta$Version-source.zip"
-Remove-Item $winZip, $srcZip -Force -ErrorAction SilentlyContinue
-Compress-Archive -Path $exe -DestinationPath $winZip -Force
+# 2b. publish framework-dependent single-file exe (requires .NET 8 Desktop Runtime, smaller)
+Write-Host "==> Publishing framework-dependent exe ..." -ForegroundColor Cyan
+dotnet publish $proj -c Release -r win-x64 --self-contained false `
+    --configfile $nugetConfig `
+    -p:PublishSingleFile=true `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -o (Join-Path $PSScriptRoot 'publish\win-x64-fx')
 
-# 4. create source zip (exclude bin/obj)
-$stage = Join-Path $PSScriptRoot '.src-staging'
-$pkg = Join-Path $stage "EdgeShelf-beta$Version"
-New-Item -ItemType Directory -Force -Path $pkg | Out-Null
-Copy-Item (Join-Path $PSScriptRoot 'README.md'), (Join-Path $PSScriptRoot 'LICENSE'), (Join-Path $PSScriptRoot 'build.ps1') $pkg
-Copy-Item (Join-Path $PSScriptRoot 'EdgeShelf') (Join-Path $pkg 'EdgeShelf') -Recurse
-Remove-Item (Join-Path $pkg 'EdgeShelf\bin'), (Join-Path $pkg 'EdgeShelf\obj') -Recurse -Force -ErrorAction SilentlyContinue
-Compress-Archive -Path $pkg -DestinationPath $srcZip -Force
-Remove-Item $stage -Recurse -Force
+# 3. copy exes + create win-x64 zip (beta naming: EdgeShelf-betaX.Y.Z-*)
+$exe = Join-Path $PSScriptRoot 'EdgeShelf.exe'
+$fxExe = Join-Path $PSScriptRoot 'EdgeShelf-net8.exe'
+Copy-Item (Join-Path $PSScriptRoot 'publish\win-x64\EdgeShelf.exe') $exe -Force
+Copy-Item (Join-Path $PSScriptRoot 'publish\win-x64-fx\EdgeShelf.exe') $fxExe -Force
+$winZip = Join-Path $PSScriptRoot "EdgeShelf-beta$Version-win-x64.zip"
+Remove-Item $winZip -Force -ErrorAction SilentlyContinue
+Compress-Archive -Path $exe -DestinationPath $winZip -Force
 
 Write-Host "==> Done. Artifacts:" -ForegroundColor Green
 Write-Host "  $exe"
+Write-Host "  $fxExe"
 Write-Host "  $winZip"
-Write-Host "  $srcZip"
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  cd '$PSScriptRoot'"
 Write-Host "  git add . ; git commit -m 'EdgeShelf v$Version' ; git push"
-Write-Host "  gh release create v$Version EdgeShelf.exe $winZip $srcZip --title 'EdgeShelf v$Version' --notes 'see README'"
+Write-Host "  gh release create v$Version $exe $fxExe $winZip --title 'EdgeShelf beta$Version' --prerelease --notes 'see README'"
 Write-Host ""
 Write-Host "Note: update README version badge / changelog before commit if needed."

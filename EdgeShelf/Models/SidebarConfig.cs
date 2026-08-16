@@ -29,6 +29,32 @@ public enum DockMode
     Stealth
 }
 
+/// <summary>白天 / 黑夜：决定面板与文字的浅色 / 深色配色。</summary>
+public enum DayNight
+{
+    /// <summary>黑夜（深色面板、浅色文字，默认）。</summary>
+    Night,
+    /// <summary>白天（浅色面板、深色文字）。</summary>
+    Day
+}
+
+/// <summary>窗口主题：合成窗口效果 + 配色方案。</summary>
+public enum WindowTheme
+{
+    /// <summary>无主题：使用自定义配色，无特殊窗口效果。</summary>
+    None,
+    /// <summary>云母（Win11 22H2+ 系统效果）。</summary>
+    Mica,
+    /// <summary>Aero：亚克力 / 毛玻璃模糊。</summary>
+    Aero,
+    /// <summary>WinXP Luna：经典 XP 蓝色调。</summary>
+    Luna,
+    /// <summary>Win98 Classic：经典银灰色调。</summary>
+    Win98,
+    /// <summary>Metro：扁平现代风格（强调色驱动）。</summary>
+    Metro
+}
+
 /// <summary>一个侧边栏的独立配置。</summary>
 public class SidebarConfig
 {
@@ -50,8 +76,25 @@ public class SidebarConfig
     public double PanelAlong { get; set; } = 0;
 
     public double Opacity { get; set; } = 0.92;
-    public bool Acrylic { get; set; } = true;
+
+    /// <summary>窗口主题（无 / 云母 / Aero / Luna / Win98 / Metro）。</summary>
+    public WindowTheme WindowTheme { get; set; } = WindowTheme.None;
+
+    /// <summary>旧版亚克力开关（仅用于配置迁移：true → WindowTheme.Aero）。</summary>
+    public bool Acrylic { get; set; }
+
+    /// <summary>窄条主题色（蓝条与按钮高亮）。</summary>
     public string AccentColor { get; set; } = "#FF4C8DFF";
+
+    /// <summary>面板主题色（面板背景基色）。</summary>
+    public string PanelColor { get; set; } = "#FF141A24";
+
+    /// <summary>白天 / 黑夜模式。</summary>
+    public DayNight DayNight { get; set; } = DayNight.Night;
+
+    /// <summary>面板是否透过（半透明 + 主题模糊效果；关闭则为纯色不透明面板）。</summary>
+    public bool PanelTranslucent { get; set; }
+
     public bool Pinned { get; set; }
     public bool EdgeTriggerFullSpan { get; set; }
     public bool FollowMouseMonitor { get; set; } = true;

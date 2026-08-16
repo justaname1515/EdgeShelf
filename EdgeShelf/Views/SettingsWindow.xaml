@@ -1,7 +1,7 @@
 <Window x:Class="EdgeShelf.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="EdgeShelf 设置" Width="420" SizeToContent="Height"
+        Title="EdgeShelf 设置" Width="480" Height="620"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         ShowInTaskbar="True" Topmost="True"
         Background="#FF20242E" WindowStyle="None" Icon="pack://application:,,,/App.ico">
@@ -53,10 +53,37 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- 深色页签样式 -->
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#CCFFFFFF"/>
+            <Setter Property="Background" Value="#FF2A2F3B"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6,6,0,0"
+                                Padding="{TemplateBinding Padding}" Margin="0,0,3,0">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FF4C8DFF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#FF3A4150"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Border BorderBrush="Black" BorderThickness="1" Background="#FF20242E">
         <StackPanel Margin="18,8,18,16">
-            <Grid Margin="0,0,0,8">
+            <Grid Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -87,188 +114,282 @@
                 </Button>
             </Grid>
 
-        <TextBlock Text="侧边栏" FontWeight="SemiBold" FontSize="13" Foreground="#E8FFFFFF"/>
+            <TabControl x:Name="SettingsTabs" Background="#FF20242E" BorderBrush="#33FFFFFF" BorderThickness="1">
 
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="名称" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <TextBox x:Name="NameBox" Grid.Column="1" FontSize="12.5" Padding="4,3"
-                     Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"/>
-        </Grid>
+                <!-- ==================== 整体配置 ==================== -->
+                <TabItem Header="整体配置">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0">
+                        <CheckBox x:Name="AutoStartCheck" Content="开机自启（后台常驻）" Foreground="#CCFFFFFF" FontSize="12.5"/>
 
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="停靠边缘" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <ComboBox x:Name="EdgeCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="EdgeCombo_Changed">
-                <ComboBoxItem Content="左侧"/>
-                <ComboBoxItem Content="右侧"/>
-                <ComboBoxItem Content="顶部"/>
-                <ComboBoxItem Content="底部"/>
-            </ComboBox>
-        </Grid>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="全局快捷键" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBox x:Name="HotkeyBox" FontSize="12.5" Padding="4,3" IsReadOnly="True"
+                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                         ToolTip="点击后按下组合键（如 Ctrl+Alt+E）；Esc 取消"
+                                         PreviewKeyDown="HotkeyBox_PreviewKeyDown" GotKeyboardFocus="HotkeyBox_GotFocus"/>
+                                <CheckBox x:Name="HotkeyEnableCheck" Content="启用（按序循环切换已勾选模式）" Margin="0,4,0,0"
+                                          Foreground="#CCFFFFFF" FontSize="12"/>
+                                <TextBlock Text="点击输入框后按 Ctrl / Alt / Shift + 一个字母键" Foreground="#88FFFFFF" FontSize="10.5" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
 
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="拐角模式" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <ComboBox x:Name="CornerCombo" Grid.Column="1" FontSize="12.5">
-                <ComboBoxItem Content="无（普通边缘）"/>
-                <ComboBoxItem Content="左上角 L 形"/>
-                <ComboBoxItem Content="右上角 L 形"/>
-                <ComboBoxItem Content="左下角 L 形"/>
-                <ComboBoxItem Content="右下角 L 形"/>
-            </ComboBox>
-        </Grid>
+                        <TextBlock Text="快捷键循环包含的模式（按 普→透→无→固 顺序切换已勾选项）"
+                                   Foreground="#88FFFFFF" FontSize="10.5" Margin="0,8,0,0"/>
+                        <WrapPanel Margin="0,4,0,0">
+                            <CheckBox x:Name="CycleNormalCheck" Content="普（正常）" Foreground="#CCFFFFFF" FontSize="12" Margin="0,0,12,0"/>
+                            <CheckBox x:Name="CycleTransparentCheck" Content="透（透明）" Foreground="#CCFFFFFF" FontSize="12" Margin="0,0,12,0"/>
+                            <CheckBox x:Name="CycleStealthCheck" Content="无（无痕）" Foreground="#CCFFFFFF" FontSize="12" Margin="0,0,12,0"/>
+                            <CheckBox x:Name="CyclePinnedCheck" Content="固（固定）" Foreground="#CCFFFFFF" FontSize="12"/>
+                        </WrapPanel>
 
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="沿边位置" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1">
-                <Slider x:Name="OffsetSlider" Minimum="0" Maximum="1000" TickFrequency="10" ValueChanged="OffsetSlider_ValueChanged"/>
-                <Button Content="重置为居中" HorizontalAlignment="Left" Margin="0,4,0,0" Padding="8,2"
-                        FontSize="11.5" Click="ResetOffset_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
-                        BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                        <Button Content="打开数据文件夹（%APPDATA%\EdgeShelf）" Margin="0,14,0,0" HorizontalAlignment="Left"
+                                Padding="10,5" FontSize="12" Click="OpenDataDir_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
+                                BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                        <Button Content="＋ 新建侧边栏（独立或作为页签）" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                Padding="10,5" FontSize="12" Click="NewSidebar_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
+                                BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                    </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ==================== 侧边栏配置 ==================== -->
+                <TabItem Header="侧边栏配置">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="选择侧边栏" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="SidebarCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="SidebarCombo_Changed"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="名称" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <TextBox x:Name="NameBox" Grid.Column="1" FontSize="12.5" Padding="4,3"
+                                     Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"/>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="停靠边缘" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="EdgeCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="EdgeCombo_Changed">
+                                <ComboBoxItem Content="左侧"/>
+                                <ComboBoxItem Content="右侧"/>
+                                <ComboBoxItem Content="顶部"/>
+                                <ComboBoxItem Content="底部"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="拐角模式" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="CornerCombo" Grid.Column="1" FontSize="12.5">
+                                <ComboBoxItem Content="无（普通边缘）"/>
+                                <ComboBoxItem Content="左上角 L 形"/>
+                                <ComboBoxItem Content="右上角 L 形"/>
+                                <ComboBoxItem Content="左下角 L 形"/>
+                                <ComboBoxItem Content="右下角 L 形"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="沿边位置" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1">
+                                <Slider x:Name="OffsetSlider" Minimum="0" Maximum="1000" TickFrequency="10"/>
+                                <Button Content="重置为居中" HorizontalAlignment="Left" Margin="0,4,0,0" Padding="8,2"
+                                        FontSize="11.5" Click="ResetOffset_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
+                                        BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CrossLabel" Text="面板宽度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Slider x:Name="CrossSlider" Minimum="280" Maximum="520" TickFrequency="10" Width="180"
+                                        ValueChanged="CrossSlider_ValueChanged"/>
+                                <TextBox x:Name="CrossBox" Text="340" Width="52" Margin="8,0,0,0" FontSize="12"
+                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                         TextChanged="CrossBox_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="AlongLabel" Text="面板高度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Slider x:Name="AlongSlider" Minimum="160" Maximum="900" TickFrequency="10" Width="180"
+                                        ValueChanged="AlongSlider_ValueChanged"/>
+                                <TextBox x:Name="AlongBox" Text="自动" Width="52" Margin="8,0,0,0" FontSize="12"
+                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                         TextChanged="AlongBox_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="面板透明度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" TickFrequency="5" Width="180"
+                                        ValueChanged="OpacitySlider_ValueChanged"/>
+                                <TextBox x:Name="OpacityBox" Text="92" Width="52" Margin="8,0,0,0" FontSize="12"
+                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                         TextChanged="OpacityBox_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox x:Name="FullSpanCheck" Margin="0,10,0,0" Content="整条边缘都能触发弹出（不局限于窄条区域）"
+                                  Foreground="#CCFFFFFF" FontSize="12.5"/>
+                        <CheckBox x:Name="FollowMouseCheck" Margin="0,8,0,0" Content="跟随鼠标所在屏幕显示" Foreground="#CCFFFFFF" FontSize="12.5"
+                                  Checked="FollowMouse_Changed" Unchecked="FollowMouse_Changed"/>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="固定显示屏幕" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="MonitorCombo" Grid.Column="1" FontSize="12.5"/>
+                        </Grid>
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="模式" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <RadioButton x:Name="ModeNormalRadio" Content="普（正常）" GroupName="ModeGroup"
+                                             Foreground="#CCFFFFFF" FontSize="12.5"
+                                             ToolTip="正常模式：蓝条可见、可拖动，边缘接近触发"/>
+                                <RadioButton x:Name="ModeTransparentRadio" Content="透（透明）" GroupName="ModeGroup" Margin="12,0,0,0"
+                                             Foreground="#CCFFFFFF" FontSize="12.5"
+                                             ToolTip="透明模式：蓝条不可见不可触碰（鼠标掠过），边缘接近仍触发"/>
+                                <RadioButton x:Name="ModeStealthRadio" Content="无（无痕）" GroupName="ModeGroup" Margin="12,0,0,0"
+                                             Foreground="#CCFFFFFF" FontSize="12.5"
+                                             ToolTip="无痕模式：蓝条不可见不可触碰，边缘触发关闭，只能托盘 / 快捷键恢复"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Button Content="删除当前页签（含其分组）" Margin="0,12,0,0" HorizontalAlignment="Left"
+                                Padding="10,5" FontSize="12" Click="DeleteSidebar_Click" Foreground="#FF8A8A"
+                                Background="#33222222" BorderBrush="#44FF8A8A" BorderThickness="1"/>
+                    </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ==================== 主题配置 ==================== -->
+                <TabItem Header="主题配置">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="选择侧边栏" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="ThemeSidebarCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="ThemeSidebarCombo_Changed"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="窗口主题" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="ThemeCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="ThemeCombo_Changed">
+                                <ComboBoxItem Content="无主题（自定义配色）"/>
+                                <ComboBoxItem Content="云母（Mica，Win11 22H2+）"/>
+                                <ComboBoxItem Content="Aero（亚克力毛玻璃）"/>
+                                <ComboBoxItem Content="WinXP Luna（经典 XP 蓝）"/>
+                                <ComboBoxItem Content="Win98 Classic（银灰）"/>
+                                <ComboBoxItem Content="Metro（扁平现代）"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="白天 / 黑夜" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <ComboBox x:Name="DayNightCombo" Grid.Column="1" FontSize="12.5" SelectionChanged="DayNightCombo_Changed">
+                                <ComboBoxItem Content="黑夜（深色面板）"/>
+                                <ComboBoxItem Content="白天（浅色面板）"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <CheckBox x:Name="PanelTranslucentCheck" Margin="0,10,0,0"
+                                  Content="面板透过（半透明 + 主题模糊效果；不勾选则为纯色面板）"
+                                  Foreground="#CCFFFFFF" FontSize="12.5"/>
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="窄条主题色" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <WrapPanel x:Name="BarColorPanel" Grid.Column="1"/>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="面板主题色" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <WrapPanel x:Name="PanelColorPanel" Grid.Column="1"/>
+                        </Grid>
+
+                        <Button Content="恢复默认配色（无主题 / 默认蓝 / 夜晚 / 不透过）" Margin="0,12,0,0"
+                                HorizontalAlignment="Left" Padding="10,5" FontSize="12" Click="RestoreDefaults_Click"
+                                Background="#FF2A2F3B" Foreground="#DDFFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1"/>
+
+                        <TextBlock Text="选择主题后，其默认配色会填入下方色板，你仍可自行修改（不固定）。「面板透过」控制面板是否半透明：勾选 = 半透明可透出桌面，不勾选 = 纯色不透明。"
+                                   Foreground="#88FFFFFF" FontSize="10.5" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                <Button Content="取消" Width="76" Height="30" Margin="0,0,10,0" IsCancel="True"
+                        Click="Cancel_Click"
+                        Background="#FF2A2F3B" Foreground="#DDFFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1"/>
+                <Button Content="保存" Width="76" Height="30" Click="Save_Click" IsDefault="True"
+                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
             </StackPanel>
-        </Grid>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Name="CrossLabel" Text="面板宽度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Slider x:Name="CrossSlider" Minimum="280" Maximum="520" TickFrequency="10" Width="170"
-                        ValueChanged="CrossSlider_ValueChanged"/>
-                <TextBox x:Name="CrossBox" Text="340" Width="52" Margin="8,0,0,0" FontSize="12"
-                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
-                         TextChanged="CrossBox_TextChanged"/>
-            </StackPanel>
-        </Grid>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Name="AlongLabel" Text="面板高度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Slider x:Name="AlongSlider" Minimum="160" Maximum="900" TickFrequency="10" Width="170"
-                        ValueChanged="AlongSlider_ValueChanged"/>
-                <TextBox x:Name="AlongBox" Text="自动" Width="52" Margin="8,0,0,0" FontSize="12"
-                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
-                         TextChanged="AlongBox_TextChanged"/>
-            </StackPanel>
-        </Grid>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="面板透明度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" TickFrequency="5" Width="170"
-                        ValueChanged="OpacitySlider_ValueChanged"/>
-                <TextBox x:Name="OpacityBox" Text="92" Width="52" Margin="8,0,0,0" FontSize="12"
-                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
-                         TextChanged="OpacityBox_TextChanged"/>
-            </StackPanel>
-        </Grid>
-
-        <CheckBox x:Name="AcrylicCheck" Margin="0,10,0,0" Content="亚克力模糊效果（毛玻璃）" Foreground="#CCFFFFFF" FontSize="12.5"/>
-        <CheckBox x:Name="FullSpanCheck" Margin="0,8,0,0" Content="整条边缘都能触发弹出（不局限于窄条区域）"
-                  Foreground="#CCFFFFFF" FontSize="12.5"/>
-        <CheckBox x:Name="FollowMouseCheck" Margin="0,8,0,0" Content="跟随鼠标所在屏幕显示" Foreground="#CCFFFFFF" FontSize="12.5"
-                  Checked="FollowMouse_Changed" Unchecked="FollowMouse_Changed"/>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="固定显示屏幕" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <ComboBox x:Name="MonitorCombo" Grid.Column="1" FontSize="12.5"/>
-        </Grid>
-
-        <Grid Margin="0,12,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="模式" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <RadioButton x:Name="ModeNormalRadio" Content="普（正常）" GroupName="ModeGroup"
-                             Foreground="#CCFFFFFF" FontSize="12.5"
-                             ToolTip="正常模式：蓝条可见、可拖动，边缘接近触发"/>
-                <RadioButton x:Name="ModeTransparentRadio" Content="透（透明）" GroupName="ModeGroup" Margin="14,0,0,0"
-                             Foreground="#CCFFFFFF" FontSize="12.5"
-                             ToolTip="透明模式：蓝条不可见不可触碰（鼠标掠过），边缘接近仍触发"/>
-                <RadioButton x:Name="ModeStealthRadio" Content="无（无痕）" GroupName="ModeGroup" Margin="14,0,0,0"
-                             Foreground="#CCFFFFFF" FontSize="12.5"
-                             ToolTip="无痕模式：蓝条不可见不可触碰，边缘触发关闭，只能托盘 / 快捷键恢复"/>
-            </StackPanel>
-        </Grid>
-
-        <Grid Margin="0,12,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="主题色" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <WrapPanel x:Name="AccentPanel" Grid.Column="1"/>
-        </Grid>
-
-        <Separator Margin="0,14,0,10" Background="#33FFFFFF"/>
-
-        <TextBlock Text="全局" FontWeight="SemiBold" FontSize="13" Foreground="#E8FFFFFF"/>
-
-        <CheckBox x:Name="AutoStartCheck" Margin="0,10,0,0" Content="开机自启（后台常驻）" Foreground="#CCFFFFFF" FontSize="12.5"/>
-
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="100"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="全局快捷键" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-            <StackPanel Grid.Column="1">
-                <TextBox x:Name="HotkeyBox" FontSize="12.5" Padding="4,3" IsReadOnly="True"
-                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
-                         ToolTip="点击后按下组合键（如 Ctrl+Alt+E）；Esc 取消"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown" GotKeyboardFocus="HotkeyBox_GotFocus"/>
-                <CheckBox x:Name="HotkeyEnableCheck" Content="启用（固定 ⇄ 无痕 切换）" Margin="0,4,0,0"
-                          Foreground="#CCFFFFFF" FontSize="12"/>
-                <TextBlock Text="点击输入框后按 Ctrl / Alt / Shift + 一个字母键" Foreground="#88FFFFFF" FontSize="10.5" Margin="0,2,0,0"/>
-            </StackPanel>
-        </Grid>
-        <Button Content="打开数据文件夹（%APPDATA%\EdgeShelf）" Margin="0,10,0,0" HorizontalAlignment="Left"
-                Padding="10,5" FontSize="12" Click="OpenDataDir_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
-                BorderBrush="#33FFFFFF" BorderThickness="1"/>
-        <Button Content="＋ 新建另一个侧边栏" Margin="0,8,0,0" HorizontalAlignment="Left"
-                Padding="10,5" FontSize="12" Click="NewSidebar_Click" Background="#FF2A2F3B" Foreground="#DDFFFFFF"
-                BorderBrush="#33FFFFFF" BorderThickness="1"/>
-        <Button Content="删除当前页签（含其分组）" Margin="0,8,0,0" HorizontalAlignment="Left"
-                Padding="10,5" FontSize="12" Click="DeleteSidebar_Click" Foreground="#FF8A8A"
-                Background="#33222222" BorderBrush="#44FF8A8A" BorderThickness="1"/>
-
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Content="取消" Width="76" Height="30" Margin="0,0,10,0" IsCancel="True"
-                    Click="Cancel_Click"
-                    Background="#FF2A2F3B" Foreground="#DDFFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1"/>
-            <Button Content="保存" Width="76" Height="30" Click="Save_Click" IsDefault="True"
-                    Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-        </StackPanel>
         </StackPanel>
     </Border>
 </Window>

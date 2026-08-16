@@ -10,8 +10,9 @@ namespace EdgeShelf.Views;
 public partial class SettingsWindow : Window
 {
     private readonly MainWindow _main;
-    private readonly SidebarConfig _cfg;
-    private string _accent = "#FF4C8DFF";
+    private readonly List<(string Label, SidebarConfig Cfg)> _all = new();
+    private string _barColor = "#FF4C8DFF";
+    private string _panelColor = "#FF141A24";
     private bool _loading = true;
     private bool _syncing;
     private double _maxOffset = 500;
@@ -19,103 +20,223 @@ public partial class SettingsWindow : Window
     private int _hkKey;
     private bool _hkCapturing;
 
-    private static readonly string[] AccentPresets =
+    private static readonly string[] ColorPresets =
     {
         "#FF4C8DFF", "#FF7C4DFF", "#FF00BFA5", "#FF00C853",
-        "#FFFF6D00", "#FFE91E63", "#FFFFB300", "#FFF44336"
+        "#FFFF6D00", "#FFE91E63", "#FFFFB300", "#FFF44336",
+        "#FF9E9E9E", "#FF000000", "#FFFFFFFF"
     };
 
     public SettingsWindow(MainWindow main)
     {
         InitializeComponent();
         _main = main;
-        _cfg = main.SidebarConfig;
 
-        var monitors = ScreenManager.Monitors;
-        double workLenDip = 0;
-        var m = monitors.Count > 0 ? monitors[Math.Clamp(_cfg.MonitorIndex, 0, monitors.Count - 1)] : null;
-        if (m != null)
+        // 编辑目标：全部侧边栏（顶层 + 页签）
+        foreach (var sb in ConfigService.Config.Sidebars)
         {
-            bool vert = _cfg.Corner != DockCorner.None
-                ? _cfg.Corner is DockCorner.TopLeft or DockCorner.TopRight or DockCorner.BottomLeft or DockCorner.BottomRight
-                : _cfg.Edge is DockEdge.Left or DockEdge.Right;
-            workLenDip = vert ? m.WorkHeight / m.Scale : m.WorkWidth / m.Scale;
+            _all.Add(($"{sb.Name}（侧边栏）", sb));
+            int j = 1;
+            foreach (var t in sb.Tabs)
+                _all.Add(($"{sb.Name} ▸ {t.Name}（页签 {j}）", t));
         }
+        SidebarCombo.ItemsSource = _all.Select(x => x.Label).ToList();
+        ThemeSidebarCombo.ItemsSource = _all.Select(x => x.Label).ToList();
 
-        NameBox.Text = _cfg.Name;
-        EdgeCombo.SelectedIndex = _cfg.Corner == DockCorner.None ? (int)_cfg.Edge : (int)EffectiveEdgeOf(_cfg);
-        CornerCombo.SelectedIndex = (int)_cfg.Corner;
+        // 默认选中当前窗口的侧边栏
+        int selfIdx = _all.FindIndex(x => ReferenceEquals(x.Cfg, main.SidebarConfig));
+        SidebarCombo.SelectedIndex = selfIdx >= 0 ? selfIdx : 0;
+        ThemeSidebarCombo.SelectedIndex = selfIdx >= 0 ? selfIdx : 0;
 
-        _maxOffset = Math.Max(0, workLenDip - 200);
-        OffsetSlider.Maximum = _maxOffset;
-        double offset = _cfg.EdgeOffset < 0 ? _maxOffset / 2 : Math.Clamp(_cfg.EdgeOffset, 0, _maxOffset);
-        OffsetSlider.Value = offset;
+        LoadGlobal();
+        LoadSidebarTab();
+        LoadThemeTab();
 
-        CrossSlider.Value = Math.Clamp(_cfg.PanelCross, CrossSlider.Minimum, CrossSlider.Maximum);
-        AlongSlider.Value = Math.Clamp(_cfg.PanelAlong > 0 ? _cfg.PanelAlong : 400, AlongSlider.Minimum, AlongSlider.Maximum);
-        OpacitySlider.Value = Math.Clamp(_cfg.Opacity * 100, OpacitySlider.Minimum, OpacitySlider.Maximum);
-
-        AcrylicCheck.IsChecked = _cfg.Acrylic;
-        FullSpanCheck.IsChecked = _cfg.EdgeTriggerFullSpan;
-        FollowMouseCheck.IsChecked = _cfg.FollowMouseMonitor;
-        MonitorCombo.ItemsSource = monitors.Select(x => x.Label).ToList();
-        MonitorCombo.SelectedIndex = Math.Clamp(_cfg.MonitorIndex, 0, Math.Max(0, monitors.Count - 1));
-        MonitorCombo.IsEnabled = _cfg.FollowMouseMonitor;
-        AutoStartCheck.IsChecked = ConfigService.Config.AutoStart;
-        HotkeyEnableCheck.IsChecked = ConfigService.Config.HotkeyEnabled;
-        _hkMods = ConfigService.Config.HotkeyModifiers;
-        _hkKey = ConfigService.Config.HotkeyKey;
-        HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
-        _accent = _cfg.AccentColor;
-        ModeNormalRadio.IsChecked = _cfg.Mode == DockMode.Normal;
-        ModeTransparentRadio.IsChecked = _cfg.Mode == DockMode.Transparent;
-        ModeStealthRadio.IsChecked = _cfg.Mode == DockMode.Stealth;
-
-        foreach (var preset in AccentPresets)
-        {
-            var btn = new Button
-            {
-                Width = 24,
-                Height = 24,
-                Margin = new Thickness(0, 0, 6, 0),
-                Tag = preset,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(preset)),
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                ToolTip = preset
-            };
-            btn.Click += Accent_Click;
-            AccentPanel.Children.Add(btn);
-        }
-
-        UpdateLabels();
         _loading = false;
     }
+
+    private SidebarConfig SidebarTarget => _all[Math.Max(0, SidebarCombo.SelectedIndex)].Cfg;
+    private SidebarConfig ThemeTarget => _all[Math.Max(0, ThemeSidebarCombo.SelectedIndex)].Cfg;
 
     private static DockEdge EffectiveEdgeOf(SidebarConfig cfg)
         => cfg.Corner != DockCorner.None
             ? (cfg.Corner is DockCorner.TopLeft or DockCorner.BottomLeft ? DockEdge.Left : DockEdge.Right)
             : cfg.Edge;
 
-    private bool IsVertical => EffectiveEdgeOf(_cfg) is DockEdge.Left or DockEdge.Right;
+    // ---------------- 加载 ----------------
 
-    private void UpdateLabels()
+    private void LoadGlobal()
     {
-        bool vert = IsVertical;
-        CrossLabel.Text = vert ? "面板宽度" : "面板高度";
-        AlongLabel.Text = vert ? "面板高度" : "面板宽度";
-        AlongBox.Text = _cfg.PanelAlong > 0 ? ((int)_cfg.PanelAlong).ToString() : "自动";
+        var g = ConfigService.Config;
+        AutoStartCheck.IsChecked = g.AutoStart;
+        HotkeyEnableCheck.IsChecked = g.HotkeyEnabled;
+        _hkMods = g.HotkeyModifiers;
+        _hkKey = g.HotkeyKey;
+        HotkeyBox.Text = FormatHotkey(_hkMods, _hkKey);
+        CycleNormalCheck.IsChecked = g.CycleNormal;
+        CycleTransparentCheck.IsChecked = g.CycleTransparent;
+        CycleStealthCheck.IsChecked = g.CycleStealth;
+        CyclePinnedCheck.IsChecked = g.CyclePinned;
     }
 
-    private void Accent_Click(object sender, RoutedEventArgs e)
+    private void LoadSidebarTab()
     {
-        if (sender is Button b && b.Tag is string s) _accent = s;
+        var cfg = SidebarTarget;
+        var monitors = ScreenManager.Monitors;
+        double workLenDip = 0;
+        var m = monitors.Count > 0 ? monitors[Math.Clamp(cfg.MonitorIndex, 0, monitors.Count - 1)] : null;
+        if (m != null)
+        {
+            bool vert = cfg.Corner != DockCorner.None
+                ? cfg.Corner is DockCorner.TopLeft or DockCorner.TopRight or DockCorner.BottomLeft or DockCorner.BottomRight
+                : cfg.Edge is DockEdge.Left or DockEdge.Right;
+            workLenDip = vert ? m.WorkHeight / m.Scale : m.WorkWidth / m.Scale;
+        }
+        _maxOffset = Math.Max(0, workLenDip - 200);
+        OffsetSlider.Maximum = _maxOffset;
+
+        NameBox.Text = cfg.Name;
+        EdgeCombo.SelectedIndex = cfg.Corner == DockCorner.None ? (int)cfg.Edge : (int)EffectiveEdgeOf(cfg);
+        CornerCombo.SelectedIndex = (int)cfg.Corner;
+        OffsetSlider.Value = cfg.EdgeOffset < 0 ? _maxOffset / 2 : Math.Clamp(cfg.EdgeOffset, 0, _maxOffset);
+        CrossSlider.Value = Math.Clamp(cfg.PanelCross, CrossSlider.Minimum, CrossSlider.Maximum);
+        AlongSlider.Value = Math.Clamp(cfg.PanelAlong > 0 ? cfg.PanelAlong : 400, AlongSlider.Minimum, AlongSlider.Maximum);
+        OpacitySlider.Value = Math.Clamp(cfg.Opacity * 100, OpacitySlider.Minimum, OpacitySlider.Maximum);
+        FullSpanCheck.IsChecked = cfg.EdgeTriggerFullSpan;
+        FollowMouseCheck.IsChecked = cfg.FollowMouseMonitor;
+        MonitorCombo.ItemsSource = monitors.Select(x => x.Label).ToList();
+        MonitorCombo.SelectedIndex = Math.Clamp(cfg.MonitorIndex, 0, Math.Max(0, monitors.Count - 1));
+        MonitorCombo.IsEnabled = cfg.FollowMouseMonitor;
+        ModeNormalRadio.IsChecked = cfg.Mode == DockMode.Normal;
+        ModeTransparentRadio.IsChecked = cfg.Mode == DockMode.Transparent;
+        ModeStealthRadio.IsChecked = cfg.Mode == DockMode.Stealth;
+        UpdateLabels(cfg);
+    }
+
+    private void LoadThemeTab()
+    {
+        var cfg = ThemeTarget;
+        ThemeCombo.SelectedIndex = Math.Clamp((int)cfg.WindowTheme, 0, 5);
+        DayNightCombo.SelectedIndex = cfg.DayNight == DayNight.Day ? 1 : 0;
+        PanelTranslucentCheck.IsChecked = cfg.PanelTranslucent;
+        _barColor = cfg.AccentColor;
+        _panelColor = cfg.PanelColor;
+        BuildSwatches(BarColorPanel, _barColor, BarColor_Click);
+        BuildSwatches(PanelColorPanel, _panelColor, PanelColor_Click);
+    }
+
+    private void BuildSwatches(WrapPanel panel, string current, RoutedEventHandler click)
+    {
+        panel.Children.Clear();
+        foreach (var preset in ColorPresets)
+        {
+            bool sel = string.Equals(preset, current, StringComparison.OrdinalIgnoreCase);
+            var btn = new Button
+            {
+                Width = 24,
+                Height = 24,
+                Margin = new Thickness(0, 0, 6, 4),
+                Tag = preset,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(preset)),
+                BorderThickness = new Thickness(sel ? 2 : 1),
+                BorderBrush = sel ? Brushes.White : new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                ToolTip = preset
+            };
+            if (sel)
+            {
+                var c = (Color)ColorConverter.ConvertFromString(preset);
+                btn.Content = new TextBlock
+                {
+                    Text = "✓",
+                    FontSize = 11,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = new SolidColorBrush(IsLight(c) ? Colors.Black : Colors.White),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+            btn.Click += click;
+            panel.Children.Add(btn);
+        }
+    }
+
+    private static bool IsLight(Color c)
+        => (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) > 150;
+
+    private static string ToHex(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+
+    private void UpdateLabels(SidebarConfig cfg)
+    {
+        bool vert = EffectiveEdgeOf(cfg) is DockEdge.Left or DockEdge.Right;
+        CrossLabel.Text = vert ? "面板宽度" : "面板高度";
+        AlongLabel.Text = vert ? "面板高度" : "面板宽度";
+        AlongBox.Text = cfg.PanelAlong > 0 ? ((int)cfg.PanelAlong).ToString() : "自动";
+    }
+
+    // ---------------- 选择器与控件事件 ----------------
+
+    private void SidebarCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && SidebarCombo.SelectedIndex >= 0) LoadSidebarTab();
+    }
+
+    private void ThemeSidebarCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && ThemeSidebarCombo.SelectedIndex >= 0) LoadThemeTab();
+    }
+
+    private void BarColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.Tag is string s)
+        {
+            _barColor = s;
+            BuildSwatches(BarColorPanel, _barColor, BarColor_Click);
+        }
+    }
+
+    private void PanelColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.Tag is string s)
+        {
+            _panelColor = s;
+            BuildSwatches(PanelColorPanel, _panelColor, PanelColor_Click);
+        }
+    }
+
+    /// <summary>主题下拉：选择主题时把默认配色填入色板（作为起点，之后仍可自行修改）。</summary>
+    private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || ThemeCombo.SelectedIndex < 0) return;
+        var theme = (WindowTheme)Math.Clamp(ThemeCombo.SelectedIndex, 0, 5);
+        var d = MainWindow.ThemeDefaults(theme);
+        if (d.Bar.HasValue) _barColor = ToHex(d.Bar.Value);
+        if (d.Panel.HasValue) _panelColor = ToHex(d.Panel.Value);
+        if (d.Day.HasValue) DayNightCombo.SelectedIndex = d.Day.Value ? 1 : 0;
+        BuildSwatches(BarColorPanel, _barColor, BarColor_Click);
+        BuildSwatches(PanelColorPanel, _panelColor, PanelColor_Click);
+    }
+
+    private void DayNightCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        // 白天/黑夜仅影响渲染，无需实时响应
+    }
+
+    /// <summary>恢复默认配色：无主题 / 默认蓝 / 夜晚 / 不透过（旧版本默认观感）。</summary>
+    private void RestoreDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = ThemeTarget;
+        cfg.WindowTheme = WindowTheme.None;
+        cfg.DayNight = DayNight.Night;
+        cfg.PanelTranslucent = false;
+        cfg.AccentColor = "#FF4C8DFF";
+        cfg.PanelColor = "#FF141A24";
+        LoadThemeTab(); // 重载界面，让色板/下拉反映默认值
     }
 
     private void EdgeCombo_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (!_loading) UpdateLabels();
+        if (!_loading) UpdateLabels(SidebarTarget);
     }
 
     private void FollowMouse_Changed(object sender, RoutedEventArgs e)
@@ -123,22 +244,10 @@ public partial class SettingsWindow : Window
         if (!_loading) MonitorCombo.IsEnabled = FollowMouseCheck.IsChecked != true;
     }
 
-    private void OffsetSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        // 实时预览位置
-        if (_loading || _cfg == null || _main == null) return;
-        if (_cfg.EdgeOffset != OffsetSlider.Value)
-        {
-            _cfg.EdgeOffset = OffsetSlider.Value;
-            _main.ApplyConfig();
-        }
-    }
-
     private void ResetOffset_Click(object sender, RoutedEventArgs e)
     {
-        _cfg.EdgeOffset = -1;
+        SidebarTarget.EdgeOffset = -1;
         OffsetSlider.Value = _maxOffset / 2;
-        _main.ApplyConfig();
     }
 
     private void CrossSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -287,39 +396,61 @@ public partial class SettingsWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        _cfg.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? "侧边栏" : NameBox.Text.Trim();
+        // ---- 整体配置 ----
+        var g = ConfigService.Config;
+        g.AutoStart = AutoStartCheck.IsChecked == true;
+        ConfigService.SetAutoStart(g.AutoStart);
+        g.HotkeyEnabled = HotkeyEnableCheck.IsChecked == true;
+        g.HotkeyModifiers = _hkMods;
+        g.HotkeyKey = _hkKey;
+        g.CycleNormal = CycleNormalCheck.IsChecked == true;
+        g.CycleTransparent = CycleTransparentCheck.IsChecked == true;
+        g.CycleStealth = CycleStealthCheck.IsChecked == true;
+        g.CyclePinned = CyclePinnedCheck.IsChecked == true;
+
+        // ---- 侧边栏配置 ----
+        var sb = SidebarTarget;
+        sb.Name = string.IsNullOrWhiteSpace(NameBox.Text) ? "侧边栏" : NameBox.Text.Trim();
         if (CornerCombo.SelectedIndex == 0)
-            _cfg.Edge = (DockEdge)EdgeCombo.SelectedIndex;
-        _cfg.Corner = (DockCorner)CornerCombo.SelectedIndex;
-        if (OffsetSlider.Value >= _maxOffset / 2 - 1 && OffsetSlider.Value <= _maxOffset / 2 + 1 && _cfg.EdgeOffset < 0)
+            sb.Edge = (DockEdge)EdgeCombo.SelectedIndex;
+        sb.Corner = (DockCorner)CornerCombo.SelectedIndex;
+        if (!(OffsetSlider.Value >= _maxOffset / 2 - 1 && OffsetSlider.Value <= _maxOffset / 2 + 1 && sb.EdgeOffset < 0))
         {
-            // 保持居中
+            sb.EdgeOffset = OffsetSlider.Value;
         }
-        else
-        {
-            _cfg.EdgeOffset = OffsetSlider.Value;
-        }
-        _cfg.PanelCross = Math.Round(CrossSlider.Value);
-        _cfg.PanelAlong = Math.Round(AlongSlider.Value);
-        _cfg.Opacity = Math.Round(OpacitySlider.Value) / 100.0;
-        _cfg.Acrylic = AcrylicCheck.IsChecked == true;
-        _cfg.EdgeTriggerFullSpan = FullSpanCheck.IsChecked == true;
-        _cfg.FollowMouseMonitor = FollowMouseCheck.IsChecked == true;
-        _cfg.MonitorIndex = Math.Max(0, MonitorCombo.SelectedIndex);
-        _cfg.Mode = ModeTransparentRadio.IsChecked == true ? DockMode.Transparent
-                  : ModeStealthRadio.IsChecked == true ? DockMode.Stealth
-                  : DockMode.Normal;
-        _cfg.AccentColor = _accent;
-        ConfigService.Config.AutoStart = AutoStartCheck.IsChecked == true;
-        ConfigService.SetAutoStart(ConfigService.Config.AutoStart);
-        ConfigService.Config.HotkeyEnabled = HotkeyEnableCheck.IsChecked == true;
-        ConfigService.Config.HotkeyModifiers = _hkMods;
-        ConfigService.Config.HotkeyKey = _hkKey;
+        sb.PanelCross = Math.Round(CrossSlider.Value);
+        sb.PanelAlong = Math.Round(AlongSlider.Value);
+        sb.Opacity = Math.Round(OpacitySlider.Value) / 100.0;
+        sb.EdgeTriggerFullSpan = FullSpanCheck.IsChecked == true;
+        sb.FollowMouseMonitor = FollowMouseCheck.IsChecked == true;
+        sb.MonitorIndex = Math.Max(0, MonitorCombo.SelectedIndex);
+        sb.Mode = ModeTransparentRadio.IsChecked == true ? DockMode.Transparent
+                : ModeStealthRadio.IsChecked == true ? DockMode.Stealth
+                : DockMode.Normal;
+
+        // ---- 主题配置 ----
+        var th = ThemeTarget;
+        th.WindowTheme = (WindowTheme)Math.Clamp(ThemeCombo.SelectedIndex, 0, 5);
+        th.DayNight = DayNightCombo.SelectedIndex == 1 ? DayNight.Day : DayNight.Night;
+        th.PanelTranslucent = PanelTranslucentCheck.IsChecked == true;
+        th.AccentColor = _barColor;
+        th.PanelColor = _panelColor;
+
         ConfigService.Save();
 
-        _main.ApplyConfig();
+        // 应用到相关窗口（顶层侧边栏直接应用；页签由宿主在切换页签时应用）
+        foreach (var w in MainWindow.Instances)
+        {
+            if (ReferenceEquals(w.SidebarConfig, sb) || ReferenceEquals(w.SidebarConfig, th) ||
+                ReferenceEquals(w.ActiveConfig, sb) || ReferenceEquals(w.ActiveConfig, th) ||
+                w.SidebarConfig.Tabs.Contains(sb) || w.SidebarConfig.Tabs.Contains(th))
+            {
+                w.ApplyConfig();
+            }
+        }
+
         _main.RefreshGroups();
-        _main.Tray?.Refresh(); // 托盘菜单的模式勾选随设置同步
+        _main.Tray?.Refresh();
         _main.RequestHotkeyReapply();
         Close();
     }

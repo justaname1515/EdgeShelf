@@ -391,13 +391,10 @@ public partial class MainWindow : Window
     {
         // 固定 ⇄ 正常绑定：固定状态强制蓝条可见可触碰，避免"固定但碰不到"
         if (_cfg.Pinned) _cfg.Mode = DockMode.Normal;
-        ListViewToggle.IsChecked = _cfg.ListView;
+        var vis = ActiveConfig; // 主题 / 配色 / 视图跟随当前页签
+        ListViewToggle.IsChecked = vis.ListView;
 
-        if (ColorConverter.ConvertFromString(_cfg.AccentColor) is Color accent)
-            Application.Current.Resources["AccentBrush"] = new SolidColorBrush(accent);
-
-        byte alpha = (byte)Math.Round(Math.Clamp(_cfg.Opacity, 0.0, 1.0) * 235);
-        Application.Current.Resources["PanelBrush"] = new SolidColorBrush(Color.FromArgb(alpha, 0x14, 0x1A, 0x24));
+        ApplyThemeResources(vis);
 
         // 模式：透明 / 无痕时窄条不可见
         // 注意：必须用 Brushes.Transparent（alpha=0 的透明画笔）显式清空该区域——
@@ -421,28 +418,79 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>根据主题 / 白天黑夜 / 自定义配色刷新全局颜色资源。</summary>
+    private void ApplyThemeResources(SidebarConfig vis)
+    {
+        var (bar, panel, day) = ThemePalette(vis);
+
+        Application.Current.Resources["AccentBrush"] = new SolidColorBrush(bar);
+
+        // 面板透明度：不勾选透过 = 纯色不透明（255）；勾选透过 = 半透明，让模糊/桌面透出来
+        byte alpha = 255;
+        if (vis.PanelTranslucent)
+            alpha = (byte)Math.Round(Math.Clamp(vis.Opacity, 0.0, 1.0) * 235 * 0.55);
+        if (day) alpha = (byte)Math.Max((int)alpha, 230); // 浅色面板基本不透明，避免透出底色发灰
+        Application.Current.Resources["PanelBrush"] = new SolidColorBrush(Color.FromArgb(alpha, panel.R, panel.G, panel.B));
+
+        if (day)
+        {
+            Application.Current.Resources["TextBrush"] = new SolidColorBrush(Color.FromArgb(0xF2, 0x1A, 0x1A, 0x1A));
+            Application.Current.Resources["SubTextBrush"] = new SolidColorBrush(Color.FromArgb(0xB0, 0x55, 0x55, 0x55));
+            Application.Current.Resources["CardBrush"] = new SolidColorBrush(Color.FromArgb(0x16, 0x00, 0x00, 0x00));
+            Application.Current.Resources["CardHoverBrush"] = new SolidColorBrush(Color.FromArgb(0x26, 0x00, 0x00, 0x00));
+            Application.Current.Resources["BorderBrush"] = new SolidColorBrush(Color.FromArgb(0x40, 0x00, 0x00, 0x00));
+            Application.Current.Resources["HeaderBrush"] = new SolidColorBrush(Color.FromArgb(0x1F, 0x00, 0x00, 0x00));
+        }
+        else
+        {
+            Application.Current.Resources["TextBrush"] = new SolidColorBrush(Color.FromArgb(0xF2, 0xFF, 0xFF, 0xFF));
+            Application.Current.Resources["SubTextBrush"] = new SolidColorBrush(Color.FromArgb(0xA0, 0xFF, 0xFF, 0xFF));
+            Application.Current.Resources["CardBrush"] = new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+            Application.Current.Resources["CardHoverBrush"] = new SolidColorBrush(Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF));
+            Application.Current.Resources["BorderBrush"] = new SolidColorBrush(Color.FromArgb(0x2E, 0xFF, 0xFF, 0xFF));
+            Application.Current.Resources["HeaderBrush"] = new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x00, 0x00));
+        }
+    }
+
+    /// <summary>解析主题配色：颜色一律取用户自定义值（主题不再定死颜色）；白天 = 面板向白色提亮。</summary>
+    public static (Color Bar, Color Panel, bool Day) ThemePalette(SidebarConfig cfg)
+    {
+        Color bar = ColorFromHex(cfg.AccentColor, Color.FromRgb(0x4C, 0x8D, 0xFF));
+        Color panel = ColorFromHex(cfg.PanelColor, Color.FromRgb(0x14, 0x1A, 0x24));
+        bool day = cfg.DayNight == DayNight.Day;
+        if (day)
+        {
+            panel = Lighten(panel, 0.78f); // 白天：浅色面板，避免"白天比黑夜还黑"
+        }
+        return (bar, panel, day);
+    }
+
+    private static Color Lighten(Color c, float t) => Color.FromRgb(
+        (byte)(c.R + (255 - c.R) * t),
+        (byte)(c.G + (255 - c.G) * t),
+        (byte)(c.B + (255 - c.B) * t));
+
+    /// <summary>主题默认配色（选中主题时填充到颜色选择器作为起点，之后仍可自行修改）。
+    /// 云母 / Aero 在分层窗口上无法使用系统效果，用柔和的默认面板色 + 半透明近似。</summary>
+    public static (Color? Bar, Color? Panel, bool? Day) ThemeDefaults(WindowTheme theme) => theme switch
+    {
+        WindowTheme.Mica => (null, Color.FromRgb(0x2A, 0x2D, 0x33), false),
+        WindowTheme.Aero => (null, Color.FromRgb(0x21, 0x2B, 0x38), false),
+        WindowTheme.Luna => (Color.FromRgb(0x2E, 0x6B, 0xD6), Color.FromRgb(0xEC, 0xE9, 0xD8), true),
+        WindowTheme.Win98 => (Color.FromRgb(0x5A, 0x5A, 0x5A), Color.FromRgb(0xC0, 0xC0, 0xC0), true),
+        WindowTheme.Metro => (null, Color.FromRgb(0x1B, 0x1B, 0x1B), false),
+        _ => (null, null, null)
+    };
+
+    private static Color ColorFromHex(string? hex, Color fallback)
+        => hex != null && ColorConverter.ConvertFromString(hex) is Color c ? c : fallback;
+
     private void ReapplyEffect()
     {
+        // 分层窗口（AllowsTransparency）上应用云母 / 亚克力等 DWM 效果会闪烁、且底色会从缝隙透出棕色条，
+        // 因此一律不使用系统效果——"透过"完全由 WPF 半透明实现
         if (_hwndSource == null) return;
-        try
-        {
-            if (IsCorner)
-            {
-                // 拐角：用普通透明窗口，避免闭合时残留半透明底框
-                WindowEffects.Reset(_hwndSource.Handle);
-                return;
-            }
-            if (_cfg.Acrylic)
-            {
-                bool ok = WindowEffects.TrySetAcrylic(_hwndSource.Handle, Color.FromRgb(0x12, 0x16, 0x20), 0.5);
-                if (!ok) WindowEffects.TrySetBlur(_hwndSource.Handle);
-            }
-            else
-            {
-                WindowEffects.Reset(_hwndSource.Handle);
-            }
-        }
-        catch { }
+        try { WindowEffects.Reset(_hwndSource.Handle); } catch { }
     }
 
     // ---------------- 开合动画 ----------------
@@ -504,6 +552,7 @@ public partial class MainWindow : Window
     private void BringToFront()
     {
         if (_hwndSource == null) return;
+        if (_settingsWindow is { IsVisible: true }) return; // 设置窗口打开时别跳到它上面（防闪烁）
         SetWindowPos(_hwndSource.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
@@ -926,6 +975,7 @@ public partial class MainWindow : Window
         RefreshTabs();
         RefreshGroups();
         ListViewToggle.IsChecked = ActiveConfig.ListView; // 每个页签各自记忆视图模式
+        ApplyConfig(); // 应用当前页签的主题 / 配色
     }
 
     public void SelectLastTab() => SelectTab(_cfg.Tabs.Count);
@@ -1455,9 +1505,9 @@ public partial class MainWindow : Window
     public void SetMode(DockMode mode)
     {
         _cfg.Mode = mode;
+        _cfg.Pinned = false; // 固定 ⇄ 正常绑定：任何模式切换都取消固定（否则固定→正常会卡死循环）
         if (mode != DockMode.Normal)
         {
-            _cfg.Pinned = false; // 透明 / 无痕不固定，避免"固定但碰不到"
             if (mode == DockMode.Stealth && _open) AnimateTo(false); // 无痕：自动隐藏，不再被鼠标唤起
             else if (!_open && IsVisible) Hide(); // 面板本就关闭：立即隐藏窗口，避免透明分层表面常驻（黑块风险）
         }
@@ -1469,7 +1519,43 @@ public partial class MainWindow : Window
     /// <summary>进入无痕模式（界面按钮）。</summary>
     private void Stealth_Click(object sender, RoutedEventArgs e) => SetMode(DockMode.Stealth);
 
-    /// <summary>全局快捷键切换：固定 ⇄ 无痕。</summary>
+    /// <summary>全局快捷键：把本侧边栏推进到下一个已勾选模式（普→透→无→固 顺序）。
+    /// 每次切换弹出模式提示气泡，避免透明 / 无痕等不可见状态让人以为快捷键失效。</summary>
+    public void AdvanceMode()
+    {
+        var cfg = ConfigService.Config;
+        var checkedModes = new List<int>();
+        if (cfg.CycleNormal) checkedModes.Add(0);
+        if (cfg.CycleTransparent) checkedModes.Add(1);
+        if (cfg.CycleStealth) checkedModes.Add(2);
+        if (cfg.CyclePinned) checkedModes.Add(3);
+        if (checkedModes.Count == 0) return;
+
+        int cur = _cfg.Pinned ? 3 : (int)_cfg.Mode;
+        int idx = checkedModes.IndexOf(cur);
+        int next = checkedModes[(idx + 1 + checkedModes.Count) % checkedModes.Count];
+        switch (next)
+        {
+            case 0:
+                SetMode(DockMode.Normal);
+                ModeToast.Show("正常模式（普）");
+                break;
+            case 1:
+                SetMode(DockMode.Transparent);
+                ModeToast.Show("透明模式（透）");
+                break;
+            case 2:
+                SetMode(DockMode.Stealth);
+                ModeToast.Show("无痕模式（无）");
+                break;
+            case 3:
+                SetPinned(true);
+                ModeToast.Show("固定面板（固）");
+                break;
+        }
+    }
+
+    /// <summary>全局快捷键切换：固定 ⇄ 无痕（旧逻辑保留为兼容调用）。</summary>
     public void TogglePinnedStealth()
     {
         if (_cfg.Pinned) SetMode(DockMode.Stealth);
@@ -1483,6 +1569,12 @@ public partial class MainWindow : Window
         UnregisterHotkey();
         if (_hwndSource == null || key == 0) return;
         _hotkeyRegistered = RegisterHotKey(_hwndSource.Handle, HotkeyId, (uint)modifiers, (uint)key);
+        try
+        {
+            File.AppendAllText(Path.Combine(ConfigService.DataDir, "error.log"),
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 热键注册 {(_hotkeyRegistered ? "成功" : "失败")} mods={modifiers} key={key}\r\n");
+        }
+        catch { }
     }
 
     public void UnregisterHotkey()
@@ -1735,6 +1827,12 @@ public partial class MainWindow : Window
         }
         else if (msg == WM_HOTKEY)
         {
+            try
+            {
+                File.AppendAllText(Path.Combine(ConfigService.DataDir, "error.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 热键触发 (窗口 {_cfg.Name})\r\n");
+            }
+            catch { }
             GlobalHotkeyPressed?.Invoke();
             handled = true;
             return IntPtr.Zero;

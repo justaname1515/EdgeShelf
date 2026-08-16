@@ -66,6 +66,12 @@ public static class ConfigService
                 sb.Mode = DockMode.Transparent;
                 accentMigrated = true;
             }
+            // 旧版 Acrylic 开关 → 新窗口主题（Aero）
+            if (sb.WindowTheme == WindowTheme.None && sb.Acrylic)
+            {
+                sb.WindowTheme = WindowTheme.Aero;
+                accentMigrated = true;
+            }
         }
         if (accentMigrated) SaveNow();
 

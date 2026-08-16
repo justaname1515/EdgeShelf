@@ -55,8 +55,33 @@ public static class WindowEffects
     public static bool TrySetBlur(IntPtr hwnd)
         => Apply(hwnd, new AccentPolicy { AccentState = (int)AccentState.EnableBlurBehind, AccentFlags = 2, GradientColor = 0 });
 
+    /// <summary>Win11 云母效果（22H2+），不支持时返回 false。</summary>
+    public static bool TrySetMica(IntPtr hwnd)
+    {
+        try
+        {
+            // DWMWA_SYSTEMBACKDROP_TYPE = 38；DWMW_SYSTEMBACKDROP_TYPE_MICA = 2
+            int backdrop = 2;
+            int hr = DwmSetWindowAttribute(hwnd, 38, ref backdrop, sizeof(int));
+            return hr == 0;
+        }
+        catch { return false; }
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
     public static void Reset(IntPtr hwnd)
-        => Apply(hwnd, new AccentPolicy { AccentState = (int)AccentState.Disabled, AccentFlags = 2, GradientColor = 0 });
+    {
+        Apply(hwnd, new AccentPolicy { AccentState = (int)AccentState.Disabled, AccentFlags = 2, GradientColor = 0 });
+        // 顺带关掉云母背景
+        try
+        {
+            int backdrop = 0; // DWMW_SYSTEMBACKDROP_TYPE_NONE
+            DwmSetWindowAttribute(hwnd, 38, ref backdrop, sizeof(int));
+        }
+        catch { }
+    }
 
     private static bool Apply(IntPtr hwnd, AccentPolicy accent)
     {

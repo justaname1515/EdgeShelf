@@ -7,10 +7,16 @@ public class AppConfig
     /// <summary>用户自选/自建的快捷方式存放文件夹（卸载软件后快捷方式仍在）。</summary>
     public string ShortcutFolder { get; set; } = "";
 
-    /// <summary>全局快捷键（固定 ⇄ 无痕切换）。</summary>
+    /// <summary>全局快捷键（按序循环切换已勾选的模式）。</summary>
     public bool HotkeyEnabled { get; set; }
     public int HotkeyModifiers { get; set; }
     public int HotkeyKey { get; set; }
+
+    /// <summary>快捷键循环包含的模式（按 普→透→无→固 顺序循环勾选项）。</summary>
+    public bool CycleNormal { get; set; } = true;
+    public bool CycleTransparent { get; set; } = true;
+    public bool CycleStealth { get; set; } = true;
+    public bool CyclePinned { get; set; } = true;
 
     // ---- 以下为旧版单侧边栏字段，仅用于迁移 ----
     public DockEdge Edge { get; set; }
