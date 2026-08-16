@@ -144,6 +144,23 @@ public static class ConfigService
             }
         }
         catch { }
+
+        // 第三机制：任务计划程序（登录触发）——由系统服务触发，不依赖 Explorer 的启动项处理，最可靠
+        try
+        {
+            var exe = CurrentExePath();
+            string args = enable
+                ? $"/Create /TN \"EdgeShelf\" /TR \"\\\"{exe}\\\"\" /SC ONLOGON /RL LIMITED /F"
+                : "/Delete /TN \"EdgeShelf\" /F";
+            var psi = new System.Diagnostics.ProcessStartInfo("schtasks.exe", args)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var p = System.Diagnostics.Process.Start(psi);
+            p?.WaitForExit(10000);
+        }
+        catch { }
     }
 
     private static string CurrentExePath()

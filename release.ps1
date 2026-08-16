@@ -35,17 +35,17 @@ dotnet publish $proj -c Release -r win-x64 --self-contained true `
     -p:EnableCompressionInSingleFile=true `
     -o (Join-Path $PSScriptRoot 'publish\win-x64')
 
-# 3. copy exe + create win-x64 zip
+# 3. copy exe + create win-x64 zip（beta 命名：EdgeShelf-betaX.Y.Z-*）
 $exe = Join-Path $PSScriptRoot 'EdgeShelf.exe'
 Copy-Item (Join-Path $PSScriptRoot 'publish\win-x64\EdgeShelf.exe') $exe -Force
-$winZip = Join-Path $PSScriptRoot "EdgeShelf-$Version-win-x64.zip"
-$srcZip = Join-Path $PSScriptRoot "EdgeShelf-$Version-source.zip"
+$winZip = Join-Path $PSScriptRoot "EdgeShelf-beta$Version-win-x64.zip"
+$srcZip = Join-Path $PSScriptRoot "EdgeShelf-beta$Version-source.zip"
 Remove-Item $winZip, $srcZip -Force -ErrorAction SilentlyContinue
 Compress-Archive -Path $exe -DestinationPath $winZip -Force
 
 # 4. create source zip (exclude bin/obj)
 $stage = Join-Path $PSScriptRoot '.src-staging'
-$pkg = Join-Path $stage "EdgeShelf-$Version"
+$pkg = Join-Path $stage "EdgeShelf-beta$Version"
 New-Item -ItemType Directory -Force -Path $pkg | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'README.md'), (Join-Path $PSScriptRoot 'LICENSE'), (Join-Path $PSScriptRoot 'build.ps1') $pkg
 Copy-Item (Join-Path $PSScriptRoot 'EdgeShelf') (Join-Path $pkg 'EdgeShelf') -Recurse
