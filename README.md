@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-beta1.11.2-4c8dff)
+![Version](https://img.shields.io/badge/version-beta1.11.3-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 屏幕边缘一条窄窄的蓝色标签，鼠标移过去滑出一块收纳面板——把文件夹、快捷方式、常用文件统统收进边缘，桌面始终保持干净。
@@ -124,7 +124,7 @@
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），**无需安装 .NET**，双击即用 |
 | **`EdgeShelf-net8.exe`** | 框架依赖单文件（约 0.5 MB），**需安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)**，体积极小 |
-| **`EdgeShelf-beta1.11.2-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
+| **`EdgeShelf-beta1.11.3-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
 
 > 源码不用单独下载：GitHub 会从 tag 自动生成 Source code (zip/tar.gz)。
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。若设置了开机自启，覆盖后建议重启一次软件以自愈自启路径。
@@ -193,7 +193,7 @@ cd Release-EdgeShelf
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序（内置 .NET 8）
 ├── EdgeShelf-net8.exe           框架依赖单文件（需安装 .NET 8 Desktop Runtime）
-├── EdgeShelf-beta1.11.2-win-x64.zip  便携压缩包（含自包含 exe）
+├── EdgeShelf-beta1.11.3-win-x64.zip  便携压缩包（含自包含 exe）
 ├── Shelf E black.ico            应用图标源文件
 ├── README.md
 ├── build.ps1                    构建脚本
@@ -249,10 +249,13 @@ EdgeShelf 托盘图标是黑色调（Shelf E black），在任务栏右下角向
 
 ## 📝 更新日志
 
+### beta1.11.3
+- **按键突起选项**：整体配置新增「按键突起」——勾选 = 按钮带云母风格凸起（中性灰蓝渐变），不勾选 = 简洁无按键；全局生效
+
 ### beta1.11.2
 - **面板透明度修复**：透明度设置移到**主题配置页**、放在「面板透过」勾选下方——只有勾选「面板透过」才能调整，且显示值不再固定为 92（加载时正确同步）
 - **Luna 黑夜配色**：黑夜模式下自动压暗浅色复古主题（Luna / Win98）的面板，不再晃眼
-- **主题改为声明式样式表**：所有主题的默认配色与白天/黑夜规则集中到一张表（`ThemeSheet`）统一驱动，后续加主题只需改一处
+- **主题改为声明式样式表**：所有主题的默认配色与白天/黑夜规则集中到一张表统一驱动
 
 ### beta1.11.1
 - **所有侧边栏共用配色**：主题页新增勾选「所有侧边栏共用同一套配色」——勾选后主题改动一次应用到全部侧边栏（含合并页签）

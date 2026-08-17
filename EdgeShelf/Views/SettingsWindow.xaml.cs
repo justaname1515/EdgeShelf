@@ -88,6 +88,7 @@ public partial class SettingsWindow : Window
         CyclePinnedCheck.IsChecked = g.CyclePinned;
         ThemeShareAllCheck.IsChecked = g.ThemeShareAll;
         ThemeSidebarCombo.IsEnabled = !g.ThemeShareAll;
+        BtnRaisedCheck.IsChecked = g.BtnRaised;
     }
 
     private void LoadSidebarTab()
@@ -439,6 +440,8 @@ public partial class SettingsWindow : Window
         g.CycleTransparent = CycleTransparentCheck.IsChecked == true;
         g.CycleStealth = CycleStealthCheck.IsChecked == true;
         g.CyclePinned = CyclePinnedCheck.IsChecked == true;
+        g.ThemeShareAll = ThemeShareAllCheck.IsChecked == true;
+        g.BtnRaised = BtnRaisedCheck.IsChecked == true;
 
         // ---- 侧边栏配置 ----
         var sb = SidebarTarget;
@@ -484,15 +487,8 @@ public partial class SettingsWindow : Window
 
         ConfigService.Save();
 
-        // 应用到相关窗口（顶层侧边栏直接应用；页签由宿主在切换页签时应用；共用配色时全部应用）
-        foreach (var w in MainWindow.Instances)
-        {
-            bool affected = share
-                || ReferenceEquals(w.SidebarConfig, sb) || ReferenceEquals(w.SidebarConfig, th)
-                || ReferenceEquals(w.ActiveConfig, sb) || ReferenceEquals(w.ActiveConfig, th)
-                || w.SidebarConfig.Tabs.Contains(sb) || w.SidebarConfig.Tabs.Contains(th);
-            if (affected) w.ApplyConfig();
-        }
+        // 应用配置到全部窗口（含全局按键突起等）
+        foreach (var w in MainWindow.Instances) w.ApplyConfig();
 
         _main.RefreshGroups();
         _main.Tray?.Refresh();

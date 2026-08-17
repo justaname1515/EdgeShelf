@@ -16,26 +16,41 @@
         <SolidColorBrush x:Key="HeaderBrush" Color="#22000000"/>
         <SolidColorBrush x:Key="ScrollThumbBrush" Color="#40FFFFFF"/>
 
-        <!-- 面板头部图标按钮 -->
+        <!-- 主题按钮画刷（由 ThemeSheet 按主题运行时更新；此处为无主题默认值） -->
+        <Color x:Key="BtnTopColor">#FF3E4554</Color>
+        <Color x:Key="BtnBottomColor">#FF2A2F3B</Color>
+        <SolidColorBrush x:Key="BtnBorderBrush" Color="#FF4A5568"/>
+        <SolidColorBrush x:Key="BtnTextBrush" Color="#E6FFFFFF"/>
+        <LinearGradientBrush x:Key="BtnBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="{DynamicResource BtnTopColor}" Offset="0"/>
+            <GradientStop Color="{DynamicResource BtnBottomColor}" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- 面板头部图标按钮（背景随主题渐变） -->
         <Style x:Key="HeaderIconBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#E6FFFFFF"/>
-            <Setter Property="Width" Value="34"/>
-            <Setter Property="Height" Value="30"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource BtnTextBrush}"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Margin" Value="2,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{DynamicResource BtnBrush}"
+                                BorderBrush="{DynamicResource BtnBorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <Border x:Name="ov" Background="Transparent" CornerRadius="5">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1FFFFFFF"/>
+                                <Setter TargetName="ov" Property="Background" Value="#26FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#33FFFFFF"/>
+                                <Setter TargetName="ov" Property="Background" Value="#40000000"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -43,19 +58,24 @@
             </Setter>
         </Style>
 
-        <!-- 面板头部图标切换按钮（图钉） -->
+        <!-- 面板头部图标切换按钮（图钉，勾选时用强调色） -->
         <Style x:Key="HeaderToggleBtn" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#E6FFFFFF"/>
-            <Setter Property="Width" Value="34"/>
-            <Setter Property="Height" Value="30"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource BtnTextBrush}"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Margin" Value="2,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border x:Name="bd" Background="{DynamicResource BtnBrush}"
+                                BorderBrush="{DynamicResource BtnBorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <Border x:Name="ov" Background="Transparent" CornerRadius="5">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -63,7 +83,7 @@
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1FFFFFFF"/>
+                                <Setter TargetName="ov" Property="Background" Value="#26FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -71,19 +91,23 @@
             </Setter>
         </Style>
 
-        <!-- 面板头部文字切换按钮（分组/浏览） -->
+        <!-- 面板头部文字切换按钮（页签，背景随主题渐变） -->
         <Style x:Key="HeaderTextBtn" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#B3FFFFFF"/>
+            <Setter Property="Foreground" Value="{DynamicResource BtnTextBrush}"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6"
+                        <Border x:Name="bd" Background="{DynamicResource BtnBrush}"
+                                BorderBrush="{DynamicResource BtnBorderBrush}"
+                                BorderThickness="1" CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border x:Name="ov" Background="Transparent" CornerRadius="5">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -91,7 +115,7 @@
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1FFFFFFF"/>
+                                <Setter TargetName="ov" Property="Background" Value="#26FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

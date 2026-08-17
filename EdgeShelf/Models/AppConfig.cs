@@ -21,6 +21,9 @@ public class AppConfig
     /// <summary>所有侧边栏共用同一套主题配色（全局主题）。</summary>
     public bool ThemeShareAll { get; set; }
 
+    /// <summary>按键突起：勾选 = 按钮带云母风格凸起；不勾选 = 简洁无按键（全局）。</summary>
+    public bool BtnRaised { get; set; } = true;
+
     // ---- 以下为旧版单侧边栏字段，仅用于迁移 ----
     public DockEdge Edge { get; set; }
     public bool FollowMouseMonitor { get; set; } = true;

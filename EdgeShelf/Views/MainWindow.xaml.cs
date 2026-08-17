@@ -425,6 +425,23 @@ public partial class MainWindow : Window
 
         Application.Current.Resources["AccentBrush"] = new SolidColorBrush(bar);
 
+        // 按键突起（全局）：勾选 = 云母风格凸起渐变；不勾选 = 简洁无按键
+        if (ConfigService.Config.BtnRaised)
+        {
+            var ctl = ThemeSheet.Controls(WindowTheme.Mica);
+            var grad = new LinearGradientBrush(ctl.BtnTop, ctl.BtnBottom, 90);
+            grad.Freeze();
+            Application.Current.Resources["BtnBrush"] = grad;
+            Application.Current.Resources["BtnBorderBrush"] = new SolidColorBrush(ctl.BtnBorder);
+            Application.Current.Resources["BtnTextBrush"] = new SolidColorBrush(ctl.BtnText);
+        }
+        else
+        {
+            Application.Current.Resources["BtnBrush"] = Brushes.Transparent;
+            Application.Current.Resources["BtnBorderBrush"] = Brushes.Transparent;
+            Application.Current.Resources["BtnTextBrush"] = new SolidColorBrush(Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF));
+        }
+
         // 面板透明度：不勾选透过 = 纯色不透明（255）；勾选透过 = 半透明，让模糊/桌面透出来
         byte alpha = 255;
         if (vis.PanelTranslucent)
