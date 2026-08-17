@@ -254,21 +254,6 @@
                             </StackPanel>
                         </Grid>
 
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="面板透明度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" TickFrequency="5" Width="180"
-                                        ValueChanged="OpacitySlider_ValueChanged"/>
-                                <TextBox x:Name="OpacityBox" Text="92" Width="52" Margin="8,0,0,0" FontSize="12"
-                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
-                                         TextChanged="OpacityBox_TextChanged"/>
-                            </StackPanel>
-                        </Grid>
-
                         <CheckBox x:Name="FullSpanCheck" Margin="0,10,0,0" Content="整条边缘都能触发弹出（不局限于窄条区域）"
                                   Foreground="#CCFFFFFF" FontSize="12.5"/>
                         <CheckBox x:Name="FollowMouseCheck" Margin="0,8,0,0" Content="跟随鼠标所在屏幕显示" Foreground="#CCFFFFFF" FontSize="12.5"
@@ -353,8 +338,23 @@
                         </Grid>
 
                         <CheckBox x:Name="PanelTranslucentCheck" Margin="0,10,0,0"
-                                  Content="面板透过（半透明 + 主题模糊效果；不勾选则为纯色面板）"
-                                  Foreground="#CCFFFFFF" FontSize="12.5"/>
+                                  Content="面板透过（半透明可透出桌面；不勾选则为纯色不透明面板）"
+                                  Foreground="#CCFFFFFF" FontSize="12.5" Checked="PanelTranslucent_Changed" Unchecked="PanelTranslucent_Changed"/>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="面板透明度" VerticalAlignment="Center" Foreground="#CCFFFFFF" FontSize="12.5"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" TickFrequency="5" Width="180"
+                                        ValueChanged="OpacitySlider_ValueChanged"/>
+                                <TextBox x:Name="OpacityBox" Text="92" Width="52" Margin="8,0,0,0" FontSize="12"
+                                         Background="#FF2A2F3B" Foreground="White" BorderBrush="#33FFFFFF"
+                                         TextChanged="OpacityBox_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
 
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>

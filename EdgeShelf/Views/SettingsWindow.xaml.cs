@@ -111,8 +111,8 @@ public partial class SettingsWindow : Window
         CornerCombo.SelectedIndex = (int)cfg.Corner;
         OffsetSlider.Value = cfg.EdgeOffset < 0 ? _maxOffset / 2 : Math.Clamp(cfg.EdgeOffset, 0, _maxOffset);
         CrossSlider.Value = Math.Clamp(cfg.PanelCross, CrossSlider.Minimum, CrossSlider.Maximum);
+        CrossBox.Text = ((int)CrossSlider.Value).ToString();
         AlongSlider.Value = Math.Clamp(cfg.PanelAlong > 0 ? cfg.PanelAlong : 400, AlongSlider.Minimum, AlongSlider.Maximum);
-        OpacitySlider.Value = Math.Clamp(cfg.Opacity * 100, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FullSpanCheck.IsChecked = cfg.EdgeTriggerFullSpan;
         FollowMouseCheck.IsChecked = cfg.FollowMouseMonitor;
         MonitorCombo.ItemsSource = monitors.Select(x => x.Label).ToList();
@@ -130,6 +130,10 @@ public partial class SettingsWindow : Window
         ThemeCombo.SelectedIndex = Math.Clamp((int)cfg.WindowTheme, 0, 5);
         DayNightCombo.SelectedIndex = cfg.DayNight == DayNight.Day ? 1 : 0;
         PanelTranslucentCheck.IsChecked = cfg.PanelTranslucent;
+        OpacitySlider.Value = Math.Clamp(cfg.Opacity * 100, OpacitySlider.Minimum, OpacitySlider.Maximum);
+        OpacityBox.Text = ((int)OpacitySlider.Value).ToString();
+        OpacitySlider.IsEnabled = cfg.PanelTranslucent; // 只有勾选"面板透过"才能调透明度
+        OpacityBox.IsEnabled = cfg.PanelTranslucent;
         _barColor = cfg.AccentColor;
         _panelColor = cfg.PanelColor;
         BuildSwatches(BarColorPanel, _barColor, BarColor_Click);
@@ -229,7 +233,7 @@ public partial class SettingsWindow : Window
     {
         if (_loading || ThemeCombo.SelectedIndex < 0) return;
         var theme = (WindowTheme)Math.Clamp(ThemeCombo.SelectedIndex, 0, 5);
-        var d = MainWindow.ThemeDefaults(theme);
+        var d = ThemeSheet.Defaults(theme);
         if (d.Bar.HasValue) _barColor = ToHex(d.Bar.Value);
         if (d.Panel.HasValue) _panelColor = ToHex(d.Panel.Value);
         if (d.Day.HasValue) DayNightCombo.SelectedIndex = d.Day.Value ? 1 : 0;
@@ -240,6 +244,14 @@ public partial class SettingsWindow : Window
     private void DayNightCombo_Changed(object sender, SelectionChangedEventArgs e)
     {
         // 白天/黑夜仅影响渲染，无需实时响应
+    }
+
+    /// <summary>面板透过开关：只有勾选"透过"时透明度滑块才可调。</summary>
+    private void PanelTranslucent_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        OpacitySlider.IsEnabled = PanelTranslucentCheck.IsChecked == true;
+        OpacityBox.IsEnabled = PanelTranslucentCheck.IsChecked == true;
     }
 
     /// <summary>恢复默认配色：无主题 / 默认蓝 / 夜晚 / 不透过（旧版本默认观感）。</summary>
@@ -440,7 +452,6 @@ public partial class SettingsWindow : Window
         }
         sb.PanelCross = Math.Round(CrossSlider.Value);
         sb.PanelAlong = Math.Round(AlongSlider.Value);
-        sb.Opacity = Math.Round(OpacitySlider.Value) / 100.0;
         sb.EdgeTriggerFullSpan = FullSpanCheck.IsChecked == true;
         sb.FollowMouseMonitor = FollowMouseCheck.IsChecked == true;
         sb.MonitorIndex = Math.Max(0, MonitorCombo.SelectedIndex);
@@ -448,12 +459,13 @@ public partial class SettingsWindow : Window
                 : ModeStealthRadio.IsChecked == true ? DockMode.Stealth
                 : DockMode.Normal;
 
-        // ---- 主题配置 ----
+        // ---- 主题配置（含面板透明度：只在"面板透过"下可调） ----
         bool share = ThemeShareAllCheck.IsChecked == true;
         var th = ThemeTarget;
         th.WindowTheme = (WindowTheme)Math.Clamp(ThemeCombo.SelectedIndex, 0, 5);
         th.DayNight = DayNightCombo.SelectedIndex == 1 ? DayNight.Day : DayNight.Night;
         th.PanelTranslucent = PanelTranslucentCheck.IsChecked == true;
+        th.Opacity = Math.Round(OpacitySlider.Value) / 100.0;
         th.AccentColor = _barColor;
         th.PanelColor = _panelColor;
         if (share)
@@ -464,6 +476,7 @@ public partial class SettingsWindow : Window
                 c.WindowTheme = th.WindowTheme;
                 c.DayNight = th.DayNight;
                 c.PanelTranslucent = th.PanelTranslucent;
+                c.Opacity = th.Opacity;
                 c.AccentColor = th.AccentColor;
                 c.PanelColor = th.PanelColor;
             }

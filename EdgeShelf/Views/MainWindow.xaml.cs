@@ -421,7 +421,7 @@ public partial class MainWindow : Window
     /// <summary>根据主题 / 白天黑夜 / 自定义配色刷新全局颜色资源。</summary>
     private void ApplyThemeResources(SidebarConfig vis)
     {
-        var (bar, panel, day) = ThemePalette(vis);
+        var (bar, panel, day) = ThemeSheet.Resolve(vis);
 
         Application.Current.Resources["AccentBrush"] = new SolidColorBrush(bar);
 
@@ -451,39 +451,6 @@ public partial class MainWindow : Window
             Application.Current.Resources["HeaderBrush"] = new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x00, 0x00));
         }
     }
-
-    /// <summary>解析主题配色：颜色一律取用户自定义值（主题不再定死颜色）；白天 = 面板向白色提亮。</summary>
-    public static (Color Bar, Color Panel, bool Day) ThemePalette(SidebarConfig cfg)
-    {
-        Color bar = ColorFromHex(cfg.AccentColor, Color.FromRgb(0x4C, 0x8D, 0xFF));
-        Color panel = ColorFromHex(cfg.PanelColor, Color.FromRgb(0x14, 0x1A, 0x24));
-        bool day = cfg.DayNight == DayNight.Day;
-        if (day)
-        {
-            panel = Lighten(panel, 0.78f); // 白天：浅色面板，避免"白天比黑夜还黑"
-        }
-        return (bar, panel, day);
-    }
-
-    private static Color Lighten(Color c, float t) => Color.FromRgb(
-        (byte)(c.R + (255 - c.R) * t),
-        (byte)(c.G + (255 - c.G) * t),
-        (byte)(c.B + (255 - c.B) * t));
-
-    /// <summary>主题默认配色（选中主题时填充到颜色选择器作为起点，之后仍可自行修改）。
-    /// 云母 / Aero 在分层窗口上无法使用系统效果，用柔和的默认面板色 + 半透明近似。</summary>
-    public static (Color? Bar, Color? Panel, bool? Day) ThemeDefaults(WindowTheme theme) => theme switch
-    {
-        WindowTheme.Mica => (null, Color.FromRgb(0x2A, 0x2D, 0x33), false),
-        WindowTheme.Aero => (null, Color.FromRgb(0x21, 0x2B, 0x38), false),
-        WindowTheme.Luna => (Color.FromRgb(0x2E, 0x6B, 0xD6), Color.FromRgb(0xEC, 0xE9, 0xD8), true),
-        WindowTheme.Win98 => (Color.FromRgb(0x5A, 0x5A, 0x5A), Color.FromRgb(0xC0, 0xC0, 0xC0), true),
-        WindowTheme.Metro => (null, Color.FromRgb(0x1B, 0x1B, 0x1B), false),
-        _ => (null, null, null)
-    };
-
-    private static Color ColorFromHex(string? hex, Color fallback)
-        => hex != null && ColorConverter.ConvertFromString(hex) is Color c ? c : fallback;
 
     private void ReapplyEffect()
     {
