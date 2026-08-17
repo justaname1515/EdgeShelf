@@ -13,6 +13,10 @@
                             <Border.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="打开位置" Click="CtxOpen_Click"/>
+                                    <MenuItem Header="剪切" Click="CtxCut_Click"/>
+                                    <MenuItem Header="复制" Click="CtxCopy_Click"/>
+                                    <MenuItem Header="粘贴" Click="CtxPaste_Click"/>
+                                    <Separator/>
                                     <MenuItem Header="在此新建子文件夹" Click="CtxNewSub_Click"/>
                                     <MenuItem Header="重命名分组" Click="CtxRename_Click"/>
                                     <Separator/>
@@ -69,6 +73,10 @@
                                                         ContextMenuOpening="Tile_ContextMenuOpening">
                                                     <Button.ContextMenu>
                                                         <ContextMenu>
+                                                            <MenuItem Header="剪切" Click="CutItem_Click"/>
+                                                            <MenuItem Header="复制" Click="CopyItem_Click"/>
+                                                            <MenuItem Header="粘贴" Click="PasteItem_Click"/>
+                                                            <Separator/>
                                                             <MenuItem Header="重命名…" Click="RenameItem_Click"/>
                                                             <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
                                                             <Separator/>
@@ -101,6 +109,10 @@
                                                       ToolTip="{Binding Item.Path}">
                                                     <Grid.ContextMenu>
                                                         <ContextMenu>
+                                                            <MenuItem Header="剪切" Click="CutItem_Click"/>
+                                                            <MenuItem Header="复制" Click="CopyItem_Click"/>
+                                                            <MenuItem Header="粘贴" Click="PasteItem_Click"/>
+                                                            <Separator/>
                                                             <MenuItem Header="重命名…" Click="RenameItem_Click"/>
                                                             <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
                                                             <Separator/>

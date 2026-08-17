@@ -177,7 +177,32 @@ public partial class GroupsView : UserControl
             _dragging = true;
             _dragHost?.CaptureMouse();
         }
+        // 拖出窗口边界 → 交给系统拖放（可直接放到桌面 / 资源管理器）
+        if (TryStartExternalDrag(sender as UIElement)) return;
         e.Handled = true; // 进入拖拽后不再触发按钮点击
+    }
+
+    /// <summary>光标离开窗口时：释放捕获并启动系统文件拖放（拖到桌面 / 资源管理器 = 复制或移动文件）。</summary>
+    private bool TryStartExternalDrag(UIElement? source)
+    {
+        if (source == null || _dragItem == null || _dragGroup == null) return false;
+        var wnd = Window.GetWindow(this);
+        if (wnd == null) return false;
+        var pos = Mouse.GetPosition(wnd);
+        if (pos.X >= 0 && pos.Y >= 0 && pos.X <= wnd.ActualWidth && pos.Y <= wnd.ActualHeight) return false;
+
+        var g = _dragGroup;
+        var it = _dragItem;
+        _dragging = false;
+        _dragItem = null;
+        _dragHost?.ReleaseMouseCapture();
+
+        var data = new DataObject();
+        var files = new System.Collections.Specialized.StringCollection { it.Path };
+        data.SetFileDropList(files);
+        try { DragDrop.DoDragDrop(source, data, DragDropEffects.Copy | DragDropEffects.Move); } catch { }
+        g.RefreshItems(); // 拖走后磁盘内容可能变化
+        return true;
     }
 
     private void Tiles_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -265,7 +290,32 @@ public partial class GroupsView : UserControl
             _listDragging = true;
             _listDragHost?.CaptureMouse();
         }
+        // 拖出窗口边界 → 交给系统拖放
+        if (TryStartListExternalDrag(sender as UIElement)) return;
         e.Handled = true; // 进入拖拽后不再触发行的点击（展开/打开）
+    }
+
+    /// <summary>列表模式拖出窗口：启动系统文件拖放。</summary>
+    private bool TryStartListExternalDrag(UIElement? source)
+    {
+        if (source == null || _listDragItem == null || _listDragGroup == null) return false;
+        var wnd = Window.GetWindow(this);
+        if (wnd == null) return false;
+        var pos = Mouse.GetPosition(wnd);
+        if (pos.X >= 0 && pos.Y >= 0 && pos.X <= wnd.ActualWidth && pos.Y <= wnd.ActualHeight) return false;
+
+        var g = _listDragGroup;
+        var it = _listDragItem;
+        _listDragging = false;
+        _listDragItem = null;
+        _listDragHost?.ReleaseMouseCapture();
+
+        var data = new DataObject();
+        var files = new System.Collections.Specialized.StringCollection { it.Path };
+        data.SetFileDropList(files);
+        try { DragDrop.DoDragDrop(source, data, DragDropEffects.Copy | DragDropEffects.Move); } catch { }
+        g.RefreshItems();
+        return true;
     }
 
     private void List_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -477,8 +527,99 @@ public partial class GroupsView : UserControl
     {
         var mi = sender as MenuItem;
         if (MenuItemInfo(mi) is not ItemInfo it) return;
-        if (FindGroupFromMenu(mi) is not GroupModel g || it.IsDirectory) return;
-        DeleteItemRequested?.Invoke(it, g);
+        if (FindGroupFromMenu(mi) is not GroupModel g) return;
+        DeleteItemRequested?.Invoke(it, g); // 文件夹与文件都可删除（回收站）
+    }
+
+    // ---------------- 剪切 / 复制 / 粘贴 ----------------
+
+    private void CutItem_Click(object sender, RoutedEventArgs e)
+    {
+        var mi = sender as MenuItem;
+        if (MenuItemInfo(mi) is not ItemInfo it) return;
+        ClipboardFiles.Put(new[] { it.Path }, cut: true);
+    }
+
+    private void CopyItem_Click(object sender, RoutedEventArgs e)
+    {
+        var mi = sender as MenuItem;
+        if (MenuItemInfo(mi) is not ItemInfo it) return;
+        ClipboardFiles.Put(new[] { it.Path }, cut: false);
+    }
+
+    private void PasteItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (FindGroupFromMenu(sender as MenuItem) is GroupModel g) PasteInto(g);
+    }
+
+    private void CtxCut_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is GroupModel g)
+            ClipboardFiles.Put(new[] { g.Path }, cut: true);
+    }
+
+    private void CtxCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is GroupModel g)
+            ClipboardFiles.Put(new[] { g.Path }, cut: false);
+    }
+
+    private void CtxPaste_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is GroupModel g) PasteInto(g);
+    }
+
+    /// <summary>把剪贴板中的文件 / 文件夹粘贴（移动或复制）到抽屉当前目录。</summary>
+    private static void PasteInto(GroupModel g)
+    {
+        string destDir = g.CurrentPath;
+        if (!System.IO.Directory.Exists(destDir)) return;
+        var clip = ClipboardFiles.TryGet();
+        if (clip == null) return;
+
+        foreach (var src in clip.Value.Paths)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(src) && !System.IO.Directory.Exists(src)) continue;
+                // 目标在源目录内则跳过（防把自己贴回自己）
+                string srcNorm = src.TrimEnd('\\');
+                string destNorm = destDir.TrimEnd('\\');
+                if (srcNorm.StartsWith(destNorm + "\\", StringComparison.OrdinalIgnoreCase)) continue;
+
+                string name = System.IO.Path.GetFileName(srcNorm);
+                string dest = System.IO.Path.Combine(destDir, name);
+                int i = 2;
+                while (System.IO.File.Exists(dest) || System.IO.Directory.Exists(dest))
+                {
+                    dest = System.IO.Path.Combine(destDir,
+                        $"{System.IO.Path.GetFileNameWithoutExtension(name)} ({i}){System.IO.Path.GetExtension(name)}");
+                    i++;
+                }
+                if (System.IO.Directory.Exists(src))
+                {
+                    if (clip.Value.Cut) System.IO.Directory.Move(src, dest);
+                    else CopyDirectory(src, dest);
+                }
+                else
+                {
+                    if (clip.Value.Cut) System.IO.File.Move(src, dest);
+                    else System.IO.File.Copy(src, dest);
+                }
+            }
+            catch { }
+        }
+        g.RefreshItems();
+        ConfigService.Save();
+    }
+
+    private static void CopyDirectory(string src, string dest)
+    {
+        System.IO.Directory.CreateDirectory(dest);
+        foreach (var d in System.IO.Directory.EnumerateDirectories(src))
+            CopyDirectory(d, System.IO.Path.Combine(dest, System.IO.Path.GetFileName(d)));
+        foreach (var f in System.IO.Directory.EnumerateFiles(src))
+            System.IO.File.Copy(f, System.IO.Path.Combine(dest, System.IO.Path.GetFileName(f)));
     }
 
     /// <summary>从 ContextMenu 的 PlacementTarget 找到所在分组。</summary>

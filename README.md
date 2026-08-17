@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-beta1.11.3-4c8dff)
+![Version](https://img.shields.io/badge/version-beta1.11.4-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 屏幕边缘一条窄窄的蓝色标签，鼠标移过去滑出一块收纳面板——把文件夹、快捷方式、常用文件统统收进边缘，桌面始终保持干净。
@@ -90,7 +90,7 @@
 
 ### 五、外观与模式
 
-- **窗口主题**：设置里可选——**无主题**（自定义配色）/ **云母 Mica**（Win11 22H2+ 系统效果）/ **Aero**（亚克力毛玻璃，失败自动回退半透明模糊）/ **WinXP Luna** / **Win98 Classic** / **Metro**（后三个为内置配色方案）。
+- **窗口主题**：设置里可选——**无主题**（自定义配色）/ **云母 Mica**（Win11 22H2+ 系统效果）/ **Aero**（亚克力毛玻璃，失败自动回退半透明模糊）/ **WinXP Luna** / **Win98 Classic** / **Metro**（后三个为内置配色方案）。（并不完善，目前本质为对模糊度对比和一些设置的微调）
 - **双色定制**：窄条主题色与面板主题色可**独立选择**，11 种预设色（含灰 / 黑 / 白）。
 - **白天 / 黑夜**：一键切换浅色面板 + 深色文字 / 深色面板 + 浅色文字。
 - **透明度**：面板透明度 0–100% 可调，0% 即全透明幽灵面板。
@@ -124,7 +124,7 @@
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），**无需安装 .NET**，双击即用 |
 | **`EdgeShelf-net8.exe`** | 框架依赖单文件（约 0.5 MB），**需安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)**，体积极小 |
-| **`EdgeShelf-beta1.11.3-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
+| **`EdgeShelf-beta1.11.4-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
 
 > 源码不用单独下载：GitHub 会从 tag 自动生成 Source code (zip/tar.gz)。
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。若设置了开机自启，覆盖后建议重启一次软件以自愈自启路径。
@@ -136,7 +136,7 @@
 1. **运行**：双击 `EdgeShelf.exe`，屏幕左边缘出现一条蓝色窄条。
 2. **滑出面板**：鼠标移到屏幕左边缘的蓝条上，面板自动滑出。
 3. **收一个文件夹**：把文件夹直接拖进面板，或双击面板空白处选择。
-4. **收快捷方式**：点头部链接图标，选一个存放文件夹（如 `D:\工具\edgeshelf`），以后所有快捷方式都收进去。
+4. **收快捷方式**：点头部链接图标，选一个存放文件夹（如 `D:\tools\edgeshelf`），然后将快捷方式拖动到抽屉。
 5. **整理**：点抽屉名字展开，按住图标拖动排序，右键图标重命名 / 移动 / 删除。
 6. **调外观**：点头部设置 ⚙，改停靠边、尺寸、主题色、透明度、模式，勾选开机自启。
 7. **多开一条**：托盘菜单「新建侧边栏」，或页签栏右侧 ＋ 再开一个页签。
@@ -193,7 +193,7 @@ cd Release-EdgeShelf
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序（内置 .NET 8）
 ├── EdgeShelf-net8.exe           框架依赖单文件（需安装 .NET 8 Desktop Runtime）
-├── EdgeShelf-beta1.11.3-win-x64.zip  便携压缩包（含自包含 exe）
+├── EdgeShelf-beta1.11.4-win-x64.zip  便携压缩包（含自包含 exe）
 ├── Shelf E black.ico            应用图标源文件
 ├── README.md
 ├── build.ps1                    构建脚本
@@ -248,6 +248,11 @@ EdgeShelf 托盘图标是黑色调（Shelf E black），在任务栏右下角向
 ---
 
 ## 📝 更新日志
+
+### beta1.11.4
+- **修复抽屉内文件夹删除**：对文件夹右键「删除」不再被拦截，可正常移入回收站
+- **剪切 / 复制 / 粘贴**：抽屉与项目的右键菜单新增剪切、复制、粘贴——可复制/剪切到系统剪贴板（资源管理器可直接粘贴），也可把剪贴板内容粘贴进当前抽屉（自动去重命名）
+- **拖到桌面**：按住抽屉里的项目拖出窗口边界，可直接拖放到桌面 / 资源管理器（复制文件，与将快捷方式拖入一致）
 
 ### beta1.11.3
 - **按键突起选项**：整体配置新增「按键突起」——勾选 = 按钮带云母风格凸起（中性灰蓝渐变），不勾选 = 简洁无按键；全局生效
