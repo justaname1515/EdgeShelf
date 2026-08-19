@@ -23,12 +23,32 @@ public static class ConfigService
             Directory.CreateDirectory(DataDir);
             if (File.Exists(ConfigPath))
             {
-                var json = File.ReadAllText(ConfigPath);
-                var cfg = JsonSerializer.Deserialize<AppConfig>(json);
-                if (cfg != null) Config = cfg;
+                if (!TryLoad(ConfigPath))
+                {
+                    // 主配置损坏 / 读取失败：尝试从上次成功保存的备份恢复
+                    string bak = Path.Combine(DataDir, "config.json.bak");
+                    if (TryLoad(bak))
+                    {
+                        Log($"配置损坏，已从备份恢复：{ConfigPath}");
+                        try { File.Copy(bak, ConfigPath, true); } catch { }
+                    }
+                    else
+                    {
+                        Log($"配置损坏且无有效备份，已重置为默认（原文件保留为 config.json.corrupt）：{ConfigPath}");
+                        try { File.Copy(ConfigPath, Path.Combine(DataDir, "config.json.corrupt"), true); } catch { }
+                    }
+                }
+                else
+                {
+                    // 成功加载：保留一份"上次成功"的备份，供下次损坏时恢复
+                    try { File.Copy(ConfigPath, Path.Combine(DataDir, "config.json.bak"), true); } catch { }
+                }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Log($"读取配置失败：{ex}");
+        }
 
         // 迁移：旧版单侧边栏配置 → Sidebars 列表
         if (Config.Sidebars.Count == 0)
@@ -78,6 +98,32 @@ public static class ConfigService
         Config.AutoStart = GetAutoStart();
     }
 
+    /// <summary>尝试把指定路径的配置解析进 Config；失败返回 false。</summary>
+    private static bool TryLoad(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return false;
+            var json = File.ReadAllText(path);
+            var cfg = JsonSerializer.Deserialize<AppConfig>(json);
+            if (cfg == null) return false;
+            Config = cfg;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>诊断日志（追加到 error.log）。</summary>
+    private static void Log(string msg)
+    {
+        try
+        {
+            File.AppendAllText(Path.Combine(DataDir, "error.log"),
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}\r\n");
+        }
+        catch { }
+    }
+
     /// <summary>延迟保存（合并频繁变更）。</summary>
     public static void Save()
     {
@@ -95,18 +141,23 @@ public static class ConfigService
         try
         {
             Directory.CreateDirectory(DataDir);
-            File.WriteAllText(ConfigPath,
-                JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
+            string json = JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true });
+            // 原子写入：先写临时文件再替换，避免强杀/断电把 config.json 截断成损坏文件
+            string tmp = ConfigPath + ".tmp";
+            File.WriteAllText(tmp, json);
+            if (File.Exists(ConfigPath)) File.Replace(tmp, ConfigPath, null);
+            else File.Move(tmp, ConfigPath);
         }
         catch (Exception ex)
         {
-            // 保存失败要能看到，否则会静默丢失配置
+            // 原子写失败：回退为直接写（至少不丢配置）
             try
             {
-                File.AppendAllText(Path.Combine(DataDir, "error.log"),
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 保存配置失败: {ex}\r\n\r\n");
+                File.WriteAllText(ConfigPath,
+                    JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true }));
             }
             catch { }
+            Log($"保存配置失败: {ex}");
         }
     }
 

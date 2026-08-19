@@ -95,7 +95,7 @@ public partial class SettingsWindow : Window
     {
         var cfg = SidebarTarget;
         var monitors = ScreenManager.Monitors;
-        double workLenDip = 0;
+        double workLenDip = 0, workCrossDip = 0;
         var m = monitors.Count > 0 ? monitors[Math.Clamp(cfg.MonitorIndex, 0, monitors.Count - 1)] : null;
         if (m != null)
         {
@@ -103,9 +103,14 @@ public partial class SettingsWindow : Window
                 ? cfg.Corner is DockCorner.TopLeft or DockCorner.TopRight or DockCorner.BottomLeft or DockCorner.BottomRight
                 : cfg.Edge is DockEdge.Left or DockEdge.Right;
             workLenDip = vert ? m.WorkHeight / m.Scale : m.WorkWidth / m.Scale;
+            workCrossDip = vert ? m.WorkWidth / m.Scale : m.WorkHeight / m.Scale;
         }
         _maxOffset = Math.Max(0, workLenDip - 200);
         OffsetSlider.Maximum = _maxOffset;
+
+        // 面板尺寸上限跟随工作区（不再写死 520 / 900）
+        CrossSlider.Maximum = Math.Max(280, workCrossDip);
+        AlongSlider.Maximum = Math.Max(160, workLenDip);
 
         NameBox.Text = cfg.Name;
         EdgeCombo.SelectedIndex = cfg.Corner == DockCorner.None ? (int)cfg.Edge : (int)EffectiveEdgeOf(cfg);

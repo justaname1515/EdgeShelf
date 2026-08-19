@@ -1011,7 +1011,9 @@ public partial class MainWindow : Window
         double axis = IsVertical ? ScreenX() : ScreenY();
         double delta = (axis - _resizeStart) / _target.Scale;
         bool growsOut = IsVertical ? EffectiveEdge == DockEdge.Left : EffectiveEdge == DockEdge.Top;
-        double newSize = Math.Clamp(_resizeStartSize + (growsOut ? delta : -delta), MinCross, MaxCross);
+        // 宽度上限 = 工作区横向尺寸（DIPs），不再写死 520
+        double workCross = IsVertical ? _target.WorkWidth / _target.Scale : _target.WorkHeight / _target.Scale;
+        double newSize = Math.Clamp(_resizeStartSize + (growsOut ? delta : -delta), MinCross, Math.Max(MinCross, workCross));
         if (Math.Abs(newSize - _cfg.PanelCross) > 0.5)
         {
             _cfg.PanelCross = Math.Round(newSize);
@@ -1047,7 +1049,9 @@ public partial class MainWindow : Window
         bool growsOut = IsCorner
             ? _cfg.Corner is DockCorner.TopLeft or DockCorner.TopRight
             : true;
-        double newSize = Math.Clamp(_resizeStartSize + (growsOut ? delta : -delta), MinAlong, MaxAlong);
+        // 长度上限 = 工作区沿边尺寸（DIPs），不再写死 900
+        double workLenDip = IsVertical ? _target.WorkHeight / _target.Scale : _target.WorkWidth / _target.Scale;
+        double newSize = Math.Clamp(_resizeStartSize + (growsOut ? delta : -delta), MinAlong, Math.Max(MinAlong, workLenDip));
         if (Math.Abs(newSize - _panelAlong) > 0.5)
         {
             _cfg.PanelAlong = Math.Round(newSize);
