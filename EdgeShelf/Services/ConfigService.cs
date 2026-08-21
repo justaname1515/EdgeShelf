@@ -14,6 +14,13 @@ public static class ConfigService
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "EdgeShelf");
 
     private static readonly string ConfigPath = Path.Combine(DataDir, "config.json");
+
+    /// <summary>配置历史目录：每次保存前把旧配置快照进来，任何覆盖 / 损坏都可找回。</summary>
+    private static readonly string HistoryDir = Path.Combine(DataDir, "history");
+
+    /// <summary>历史保留份数（滚动，超出删除最旧）。</summary>
+    private const int HistoryMax = 20;
+
     private static DispatcherTimer? _saveTimer;
 
     public static void Load()
@@ -48,6 +55,13 @@ public static class ConfigService
         catch (Exception ex)
         {
             Log($"读取配置失败：{ex}");
+        }
+
+        // 新（beta1.11.5）：配置缺失，或“合法但全空”（没有任何抽屉/标签）→ 尝试从历史备份自动恢复。
+        // 旧逻辑只防“损坏文件”；这里防“配置被合法空文件悄悄覆盖后丢失全部抽屉”这类事故。
+        if (!File.Exists(ConfigPath) || HasNoContent())
+        {
+            TryRestoreFromHistory();
         }
 
         // 迁移：旧版单侧边栏配置 → Sidebars 列表
@@ -124,6 +138,65 @@ public static class ConfigService
         catch { }
     }
 
+    /// <summary>当前配置是否没有任何抽屉 / 标签（可疑空配置）。</summary>
+    private static bool HasNoContent()
+    {
+        bool AnyContent(SidebarConfig sb) =>
+            (sb.Groups?.Count ?? 0) > 0 || (sb.Tabs?.Count ?? 0) > 0 ||
+            (sb.Tabs?.Any(AnyContent) ?? false);
+        return !Config.Sidebars.Any(AnyContent);
+    }
+
+    /// <summary>尝试从历史备份恢复最新一份“有内容”的配置；成功返回 true（原空/缺失状态留档 corrupt）。</summary>
+    private static bool TryRestoreFromHistory()
+    {
+        try
+        {
+            if (!Directory.Exists(HistoryDir)) return false;
+            var files = Directory.GetFiles(HistoryDir, "config-*.json")
+                .OrderByDescending(f => f).ToList();
+            foreach (var f in files)
+            {
+                var old = Config;
+                if (!TryLoad(f)) continue;
+                if (HasNoContent()) { Config = old; continue; } // 跳过空快照
+                // 恢复：原状态留档 .corrupt，写回主配置并刷新 .bak
+                try { if (File.Exists(ConfigPath)) File.Copy(ConfigPath, Path.Combine(DataDir, "config.json.corrupt"), true); } catch { }
+                try { File.Copy(f, ConfigPath, true); } catch { }
+                try { File.Copy(ConfigPath, Path.Combine(DataDir, "config.json.bak"), true); } catch { }
+                Log($"配置缺失/为空，已从历史备份自动恢复：{Path.GetFileName(f)}");
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"历史恢复失败：{ex.Message}");
+        }
+        return false;
+    }
+
+    /// <summary>保存前把当前 config.json 快照进历史（滚动保留最近 HistoryMax 份，内容相同跳过）。</summary>
+    private static void SnapshotHistory()
+    {
+        try
+        {
+            if (!File.Exists(ConfigPath)) return;
+            Directory.CreateDirectory(HistoryDir);
+            var files = Directory.GetFiles(HistoryDir, "config-*.json")
+                .OrderByDescending(f => f).ToList();
+            if (files.Count > 0 &&
+                File.ReadAllBytes(files[0]).SequenceEqual(File.ReadAllBytes(ConfigPath)))
+                return;
+            string dest = Path.Combine(HistoryDir, $"config-{DateTime.Now:yyyyMMdd-HHmmss-fff}.json");
+            File.Copy(ConfigPath, dest, true);
+            foreach (var f in files.Skip(HistoryMax - 1))
+            {
+                try { File.Delete(f); } catch { }
+            }
+        }
+        catch { }
+    }
+
     /// <summary>延迟保存（合并频繁变更）。</summary>
     public static void Save()
     {
@@ -142,6 +215,8 @@ public static class ConfigService
         {
             Directory.CreateDirectory(DataDir);
             string json = JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true });
+            // 新（beta1.11.5）：保存前先把当前 config.json 快照进历史，保证任何覆盖都可找回
+            SnapshotHistory();
             // 原子写入：先写临时文件再替换，避免强杀/断电把 config.json 截断成损坏文件
             string tmp = ConfigPath + ".tmp";
             File.WriteAllText(tmp, json);

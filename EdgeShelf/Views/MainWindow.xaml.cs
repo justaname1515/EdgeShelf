@@ -96,7 +96,9 @@ public partial class MainWindow : Window
         GroupsView.MoveItemRequested += (it, from, to) => MoveDrawerItem(it, from, to);
         GroupsView.RenameItemRequested += (it, g) => RenameDrawerItem(it, g);
         GroupsView.MoveDrawerRequested += (g, move) => MoveDrawer(g, move);
+        GroupsView.MoveGroupToSidebarRequested += (g, target) => MoveGroupToSidebar(g, target);
         GroupsView.DrawersProvider = src => AllDrawers().Where(g => !ReferenceEquals(g, src));
+        GroupsView.SidebarsProvider = g => OtherSidebars(g);
         Instances.Add(this);
         RefreshTabs();
 
@@ -1186,6 +1188,45 @@ public partial class MainWindow : Window
         }
         foreach (var w in Instances) AddSidebar(w.SidebarConfig);
         return list.Distinct();
+    }
+
+    /// <summary>收集所有侧边栏与合并页签（不含源抽屉所在的那个）。</summary>
+    private static IEnumerable<SidebarConfig> OtherSidebars(GroupModel g)
+    {
+        var all = new List<SidebarConfig>();
+        void AddSidebar(SidebarConfig cfg)
+        {
+            all.Add(cfg);
+            foreach (var t in cfg.Tabs) all.Add(t);
+        }
+        foreach (var w in Instances) AddSidebar(w.SidebarConfig);
+        var container = all.FirstOrDefault(sb => sb.Groups.Contains(g));
+        return all.Where(sb => !ReferenceEquals(sb, container));
+    }
+
+    /// <summary>把抽屉整体移动到另一个侧边栏 / 页签（顺序持久化，目标窗口即时刷新）。</summary>
+    private void MoveGroupToSidebar(GroupModel g, SidebarConfig target)
+    {
+        // 找到当前所在侧边栏 / 页签（本窗口的侧边栏或其合并页签）
+        SidebarConfig? container = null;
+        void FindIn(SidebarConfig sb)
+        {
+            if (container != null) return;
+            if (sb.Groups.Contains(g)) container = sb;
+            else foreach (var t in sb.Tabs) FindIn(t);
+        }
+        FindIn(_cfg);
+        if (container == null || ReferenceEquals(container, target)) return;
+
+        container.Groups.Remove(g);
+        target.Groups.Add(g);
+        ConfigService.Save();
+
+        // 刷新本窗口与目标窗口的抽屉显示
+        RefreshGroups();
+        var tw = Instances.FirstOrDefault(w =>
+            ReferenceEquals(w.SidebarConfig, target) || w.SidebarConfig.Tabs.Contains(target));
+        if (tw != null && tw != this) tw.RefreshGroups();
     }
 
     /// <summary>删除抽屉里的快捷方式 / 文件（移入回收站）。</summary>

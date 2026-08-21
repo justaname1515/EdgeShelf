@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078d4)
 ![Runtime](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![UI](https://img.shields.io/badge/UI-WPF-512BD4)
-![Version](https://img.shields.io/badge/version-beta1.11.5-4c8dff)
+![Version](https://img.shields.io/badge/version-beta1.11.6-4c8dff)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 > 屏幕边缘一条窄窄的蓝色标签，鼠标移过去滑出一块收纳面板——把文件夹、快捷方式、常用文件统统收进边缘，桌面始终保持干净。
@@ -124,7 +124,7 @@
 | --- | --- |
 | **`EdgeShelf.exe`** | 自包含单文件（约 63 MB），**无需安装 .NET**，双击即用 |
 | **`EdgeShelf-net8.exe`** | 框架依赖单文件（约 0.5 MB），**需安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)**，体积极小 |
-| **`EdgeShelf-beta1.11.5-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
+| **`EdgeShelf-beta1.11.6-win-x64.zip`** | 便携压缩包（内置 .NET 的 EdgeShelf.exe），解压后运行其中的 exe |
 
 > 源码不用单独下载：GitHub 会从 tag 自动生成 Source code (zip/tar.gz)。
 > 升级：直接用新 exe 覆盖旧版即可，配置自动迁移，原有分组不丢。若设置了开机自启，覆盖后建议重启一次软件以自愈自启路径。
@@ -193,7 +193,7 @@ cd Release-EdgeShelf
 Release-EdgeShelf/
 ├── EdgeShelf.exe                自包含单文件可执行程序（内置 .NET 8）
 ├── EdgeShelf-net8.exe           框架依赖单文件（需安装 .NET 8 Desktop Runtime）
-├── EdgeShelf-beta1.11.5-win-x64.zip  便携压缩包（含自包含 exe）
+├── EdgeShelf-beta1.11.6-win-x64.zip  便携压缩包（含自包含 exe）
 ├── Shelf E black.ico            应用图标源文件
 ├── README.md
 ├── build.ps1                    构建脚本
@@ -248,6 +248,10 @@ EdgeShelf 托盘图标是黑色调（Shelf E black），在任务栏右下角向
 ---
 
 ## 📝 更新日志
+
+### beta1.11.6
+- **配置历史备份**：每次保存前自动把旧配置快照到 `%APPDATA%\EdgeShelf\history\`（滚动保留最近 20 份）；配置缺失或变成"合法但全空"时，启动自动从最新一份有内容的备份恢复——任何覆盖 / 损坏都能找回
+- **抽屉移动到其他侧边栏**：抽屉右键菜单新增「移动到其他侧边栏…」——直接把整个抽屉搬到另一个侧边栏 / 页签（顺序与内容一并保留）
 
 ### beta1.11.5
 - **配置读取加固**：修复"开机读不到配置要重新设置"——配置保存改为**原子写入**（不再因强杀/断电截断）；读取失败时自动从备份 `config.json.bak` 恢复，并在 `error.log` 记录原因；每次成功加载都保留一份"上次成功"备份

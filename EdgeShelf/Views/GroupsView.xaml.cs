@@ -21,6 +21,12 @@ public partial class GroupsView : UserControl
     public enum DrawerMove { Up, Down, Top, Bottom }
     public event Action<GroupModel, DrawerMove>? MoveDrawerRequested;
 
+    /// <summary>抽屉整体移动到其他侧边栏。</summary>
+    public event Action<GroupModel, SidebarConfig>? MoveGroupToSidebarRequested;
+
+    /// <summary>供主窗口注入：给定源抽屉，返回可移动到的其他侧边栏列表（不含所在侧边栏）。</summary>
+    public Func<GroupModel, IEnumerable<SidebarConfig>>? SidebarsProvider { get; set; }
+
     /// <summary>供主窗口注入：给定源抽屉，返回可移动到的其他抽屉列表。</summary>
     public Func<GroupModel, IEnumerable<GroupModel>>? DrawersProvider { get; set; }
 
@@ -467,6 +473,44 @@ public partial class GroupsView : UserControl
     {
         if ((sender as FrameworkElement)?.DataContext is GroupModel g)
             MoveDrawerRequested?.Invoke(g, move);
+    }
+
+    // ---------------- 抽屉右键菜单：移动到其他侧边栏 ----------------
+
+    /// <summary>右键打开抽屉菜单时，动态填充"移动到其他侧边栏"子菜单。</summary>
+    private void Drawer_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        var fe = sender as FrameworkElement;
+        if (FindGroup(fe) is not GroupModel g) return;
+        var menu = fe?.ContextMenu;
+        if (menu == null) return;
+
+        var moveMenu = menu.Items.OfType<MenuItem>()
+            .FirstOrDefault(m => m.Header as string == "移动到其他侧边栏…");
+        if (moveMenu == null) return;
+
+        moveMenu.Items.Clear();
+        var targets = SidebarsProvider?.Invoke(g)?.ToList() ?? new List<SidebarConfig>();
+        if (targets.Count == 0)
+        {
+            moveMenu.Items.Add(new MenuItem { Header = "（没有其他侧边栏）", IsEnabled = false });
+        }
+        else
+        {
+            foreach (var sb in targets)
+            {
+                var item = new MenuItem { Header = sb.Name };
+                var target = sb;
+                item.Click += (_, _) => MoveGroupToSidebarRequested?.Invoke(g, target);
+                moveMenu.Items.Add(item);
+            }
+        }
+    }
+
+    private void CtxMoveToSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        // 实际移动由子菜单项触发（MoveGroupToSidebarRequested），此入口保留为空以防误触发
+        if (sender is MenuItem m && m.Items.Count == 0) e.Handled = true;
     }
 
     // ---------------- 瓦片 / 列表行右键菜单（重命名 / 移动 / 删除） ----------------

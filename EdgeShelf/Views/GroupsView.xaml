@@ -9,7 +9,8 @@
                     <DataTemplate>
                         <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1" CornerRadius="10" Margin="0,0,0,8" Padding="10,6,10,8"
-                                MouseEnter="Card_MouseEnter" MouseLeave="Card_MouseLeave">
+                                MouseEnter="Card_MouseEnter" MouseLeave="Card_MouseLeave"
+                                ContextMenuOpening="Drawer_ContextMenuOpening">
                             <Border.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="打开位置" Click="CtxOpen_Click"/>
@@ -19,6 +20,7 @@
                                     <Separator/>
                                     <MenuItem Header="在此新建子文件夹" Click="CtxNewSub_Click"/>
                                     <MenuItem Header="重命名分组" Click="CtxRename_Click"/>
+                                    <MenuItem Header="移动到其他侧边栏…" Click="CtxMoveToSidebar_Click"/>
                                     <Separator/>
                                     <MenuItem Header="上移" Click="CtxMoveUp_Click"/>
                                     <MenuItem Header="下移" Click="CtxMoveDown_Click"/>
