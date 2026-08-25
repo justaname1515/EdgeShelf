@@ -1120,6 +1120,10 @@ public partial class MainWindow : Window
         foreach (var g in ActiveConfig.Groups) g.RefreshItems();
         GroupsView.SetGroups(ActiveConfig.Groups);
         GroupsView.SetViewMode(ActiveConfig.ListView);
+        // 重新应用当前搜索词（切页签 / 增删抽屉后保持对当前侧边栏的过滤）
+        var q = SearchBox.Text.Trim();
+        if (q.Length > 0)
+            foreach (var g in ActiveConfig.Groups) g.ApplySearch(q);
         SyncWatchers();
     }
 
@@ -1699,7 +1703,7 @@ public partial class MainWindow : Window
     {
         var q = SearchBox.Text.Trim();
         SearchHint.Visibility = q.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var g in _cfg.Groups) g.ApplySearch(q);
+        foreach (var g in ActiveConfig.Groups) g.ApplySearch(q);
     }
 
     private void SearchBox_KeyDown(object sender, KeyEventArgs e)
