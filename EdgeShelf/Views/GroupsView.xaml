@@ -79,6 +79,9 @@
                                                             <MenuItem Header="复制" Click="CopyItem_Click"/>
                                                             <MenuItem Header="粘贴" Click="PasteItem_Click"/>
                                                             <Separator/>
+                                                            <MenuItem Header="以管理员模式启动" Click="RunAsAdmin_Click"/>
+                                                            <MenuItem Header="打开文件所在位置" Click="OpenItemLocation_Click"/>
+                                                            <Separator/>
                                                             <MenuItem Header="重命名…" Click="RenameItem_Click"/>
                                                             <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>
                                                             <Separator/>
@@ -114,6 +117,9 @@
                                                             <MenuItem Header="剪切" Click="CutItem_Click"/>
                                                             <MenuItem Header="复制" Click="CopyItem_Click"/>
                                                             <MenuItem Header="粘贴" Click="PasteItem_Click"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="以管理员模式启动" Click="RunAsAdmin_Click"/>
+                                                            <MenuItem Header="打开文件所在位置" Click="OpenItemLocation_Click"/>
                                                             <Separator/>
                                                             <MenuItem Header="重命名…" Click="RenameItem_Click"/>
                                                             <MenuItem Header="移动到其他抽屉…" Click="MoveTo_Click"/>

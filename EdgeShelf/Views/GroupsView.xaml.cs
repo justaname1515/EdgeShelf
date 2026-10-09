@@ -535,6 +535,10 @@ public partial class GroupsView : UserControl
         // 文件夹与文件一视同仁：都提供 重命名 / 移动 / 删除
         if (moveMenu == null) return;
 
+        // 文件夹没有"以管理员模式启动"
+        var runAs = menu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header as string == "以管理员模式启动");
+        if (runAs != null) runAs.IsEnabled = !it.IsDirectory;
+
         moveMenu.Items.Clear();
         var targets = DrawersProvider?.Invoke(src)?.Where(g => !ReferenceEquals(g, src)).ToList() ?? new List<GroupModel>();
         if (targets.Count == 0)
@@ -573,6 +577,51 @@ public partial class GroupsView : UserControl
         if (MenuItemInfo(mi) is not ItemInfo it) return;
         if (FindGroupFromMenu(mi) is not GroupModel g) return;
         DeleteItemRequested?.Invoke(it, g); // 文件夹与文件都可删除（回收站）
+    }
+
+    // ---------------- 项目右键菜单：以管理员模式启动 / 打开文件所在位置 ----------------
+
+    /// <summary>打开文件所在位置：.lnk 先解析快捷方式目标再定位；文件夹定位到其所在父目录。</summary>
+    private void OpenItemLocation_Click(object sender, RoutedEventArgs e)
+    {
+        var mi = sender as MenuItem;
+        if (MenuItemInfo(mi) is not ItemInfo it) return;
+        string reveal = it.Path;
+        if (!it.IsDirectory && it.Name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!)!;
+                dynamic lnk = shell.CreateShortcut(it.Path);
+                string? target = lnk.TargetPath;
+                if (!string.IsNullOrEmpty(target)) reveal = target;
+            }
+            catch { }
+        }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe",
+                $"/select,\"{reveal}\"") { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    /// <summary>以管理员模式启动（.lnk / .exe 触发 UAC 提权；用户取消则静默）。</summary>
+    private void RunAsAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        var mi = sender as MenuItem;
+        if (MenuItemInfo(mi) is not ItemInfo it || it.IsDirectory) return;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo(it.Path)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = System.IO.Path.GetDirectoryName(it.Path) ?? ""
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch { } // 用户取消 UAC / 无权限：静默
     }
 
     // ---------------- 剪切 / 复制 / 粘贴 ----------------

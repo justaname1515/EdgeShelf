@@ -1120,10 +1120,8 @@ public partial class MainWindow : Window
         foreach (var g in ActiveConfig.Groups) g.RefreshItems();
         GroupsView.SetGroups(ActiveConfig.Groups);
         GroupsView.SetViewMode(ActiveConfig.ListView);
-        // 重新应用当前搜索词（切页签 / 增删抽屉后保持对当前侧边栏的过滤）
-        var q = SearchBox.Text.Trim();
-        if (q.Length > 0)
-            foreach (var g in ActiveConfig.Groups) g.ApplySearch(q);
+        // 当前显示的侧边栏 / 页签跟随搜索框，其余页签清掉残留过滤
+        SyncSearch();
         SyncWatchers();
     }
 
@@ -1701,8 +1699,33 @@ public partial class MainWindow : Window
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        SearchHint.Visibility = SearchBox.Text.Trim().Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SyncSearch();
+    }
+
+    /// <summary>本窗口自有侧边栏 + 全部合并页签（含嵌套）。</summary>
+    private IEnumerable<SidebarConfig> SelfAndTabs()
+    {
+        IEnumerable<SidebarConfig> Walk(SidebarConfig sb)
+        {
+            yield return sb;
+            foreach (var t in sb.Tabs)
+                foreach (var x in Walk(t)) yield return x;
+        }
+        return Walk(_cfg);
+    }
+
+    /// <summary>搜索框内容是唯一真相：当前显示的侧边栏 / 页签跟随它，其余页签一律清掉过滤，
+    /// 避免切走再切回时残留上一次的搜索结果。</summary>
+    private void SyncSearch()
+    {
         var q = SearchBox.Text.Trim();
-        SearchHint.Visibility = q.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var sb in SelfAndTabs())
+        {
+            if (ReferenceEquals(sb, ActiveConfig)) continue;
+            foreach (var g in sb.Groups)
+                if (g.SearchActive) g.ApplySearch("");
+        }
         foreach (var g in ActiveConfig.Groups) g.ApplySearch(q);
     }
 
